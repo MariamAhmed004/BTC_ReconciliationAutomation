@@ -1,0 +1,6 @@
+@BTC_ReconciliationAutomation.Server_HostAddress = http://localhost:5138
+
+GET {{BTC_ReconciliationAutomation.Server_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###

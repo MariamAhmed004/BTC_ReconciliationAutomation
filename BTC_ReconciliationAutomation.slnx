@@ -1,0 +1,7 @@
+<Solution>
+  <Project Path="btc_reconciliationautomation.client/btc_reconciliationautomation.client.esproj">
+    <Build />
+    <Deploy />
+  </Project>
+  <Project Path="BTC_ReconciliationAutomation.Server/BTC_ReconciliationAutomation.Server.csproj" />
+</Solution>
