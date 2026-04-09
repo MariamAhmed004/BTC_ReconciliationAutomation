@@ -1,5 +1,5 @@
 <script setup>
-// Simple dashboard to verify Bootstrap/Bootswatch integration
+  // Simple dashboard to verify Bootstrap/Bootswatch integration --this only a placeholder for now, but we can expand it with real data and charts later on.
 </script>
 
 <template>
