@@ -1,9 +1,10 @@
 <script setup>
-import Dashboard from './components/Dashboard.vue'
+import NavBar from './components/common/NavBar.vue'
 </script>
 
 <template>
-  <Dashboard />
+  <NavBar />
+  <router-view />
 </template>
 
 <style scoped>
