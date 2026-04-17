@@ -1,14 +1,22 @@
 import { createRouter, createWebHistory } from 'vue-router'
-import Dashboard from '@/components/Dashboard.vue'
 
+import Dashboard from '@/components/Dashboard.vue'
+const Welcome = () => import('@/pages/Welcome.vue')
+const Login = () => import('@/pages/Login.vue')
 const Reconciliation = () => import('@/pages/Reconciliation.vue')
 const Management = () => import('@/pages/Management.vue')
 const Alerts = () => import('@/pages/Alerts.vue')
 const FilesRepository = () => import('@/pages/FilesRepository.vue')
 const Logs = () => import('@/pages/Logs.vue')
+const SignUp = () => import('@/pages/SignUp.vue')
+const LogDetails = () => import('@/pages/LogDetails.vue')
 
 const routes = [
   { path: '/', name: 'Dashboard', component: Dashboard },
+  { path: '/welcome', name: 'Welcome', component: Welcome, meta: { hideNav: true } },
+  { path: '/login', name: 'Login', component: Login, meta: { hideNav: true } },
+  { path: '/signup', name: 'SignUp', component: SignUp, meta: { hideNav: true } },
+  { path: '/log/:id', name: 'LogDetails', component: LogDetails },
   { path: '/reconciliation', name: 'Reconciliation', component: Reconciliation },
   { path: '/management', name: 'Management', component: Management },
   { path: '/alerts', name: 'Alerts', component: Alerts },

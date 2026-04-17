@@ -3,8 +3,10 @@ import NavBar from './components/common/NavBar.vue'
 </script>
 
 <template>
-  <NavBar />
-  <router-view />
+  <div>
+    <NavBar v-if="!$route.meta.hideNav" />
+    <router-view />
+  </div>
 </template>
 
 <style scoped>

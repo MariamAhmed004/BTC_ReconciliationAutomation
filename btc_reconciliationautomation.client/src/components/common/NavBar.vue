@@ -6,11 +6,8 @@
   <nav class="navbar navbar-expand-lg bg-light border-bottom shadow-sm">
     <div class="container-fluid">
       <a class="navbar-brand d-flex align-items-center" href="#">
-        <img src="/src/assets/logo.svg" alt="Logo" width="40" height="40" class="me-2" />
-        <div class="d-none d-md-block">
-          <div class="fw-bold">Batelco</div>
-          <small class="text-muted">by Beyon</small>
-        </div>
+        <img src="/src/assets/logo.png" alt="Logo" width="140" height="40" class="me-2" />
+        
       </a>
 
       <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
