@@ -2,12 +2,23 @@ using System.Diagnostics;
 using System.Linq;
 using Microsoft.AspNetCore.Hosting.Server.Features;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.EntityFrameworkCore;
 
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
 
 builder.Services.AddControllers();
+// register DbContext
+builder.Services.AddDbContext<BTC_ReconciliationAutomation.Server.Models.OracleDbContext>(opts =>
+    opts.UseOracle(builder.Configuration.GetConnectionString("OracleDb")));
+
+// register repositories
+builder.Services.AddScoped<BTC_ReconciliationAutomation.Server.Repositories.Interfaces.IReconciliationRunRepository, BTC_ReconciliationAutomation.Server.Repositories.Implementation.ReconciliationRunRepository>();
+builder.Services.AddScoped<BTC_ReconciliationAutomation.Server.Repositories.Interfaces.ISummaryRepository, BTC_ReconciliationAutomation.Server.Repositories.Implementation.SummaryRepository>();
+builder.Services.AddScoped<BTC_ReconciliationAutomation.Server.Repositories.Interfaces.IFileRepository, BTC_ReconciliationAutomation.Server.Repositories.Implementation.FileRepository>();
+builder.Services.AddScoped<BTC_ReconciliationAutomation.Server.Repositories.Interfaces.ISystemLogRepository, BTC_ReconciliationAutomation.Server.Repositories.Implementation.SystemLogRepository>();
+builder.Services.AddScoped<BTC_ReconciliationAutomation.Server.Repositories.Interfaces.IConfigurationRepository, BTC_ReconciliationAutomation.Server.Repositories.Implementation.ConfigurationRepository>();
 // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
