@@ -21,6 +21,16 @@ const currentPage = ref(1)
 const showFilter = ref(false)
 const activeFilters = ref({})
 
+// Helper function to get badge class based on status
+function getStatusBadgeClass(status) {
+  if (!status) return 'badge bg-secondary'
+
+  const statusUpper = status.toUpperCase()
+  if (statusUpper === 'COMPLETED') return 'badge bg-success'
+  if (statusUpper === 'FAILED') return 'badge bg-danger'
+  return 'badge bg-secondary'
+}
+
 function initFilters() {
   activeFilters.value = {}
   props.filters.forEach(f => { activeFilters.value[f.key] = f.default ?? '' })
@@ -145,6 +155,11 @@ watch(pageSize, () => { currentPage.value = 1 })
                   <span v-if="item[col.key] === 'ok' || item[col.key] === true" class="status-badge success">✓</span>
                   <span v-else class="status-badge danger">✕</span>
                 </template>
+                <template v-else-if="col.render === 'statusBadge'">
+                  <span :class="getStatusBadgeClass(item[col.key])">
+                    {{ item[col.key] || 'N/A' }}
+                  </span>
+                </template>
                 <template v-else>
                   {{ item[col.key] }}
                 </template>
@@ -168,12 +183,12 @@ watch(pageSize, () => { currentPage.value = 1 })
           <li class="page-item" :class="{ disabled: currentPage===1 }"><button class="page-link" @click="firstPage">««</button></li>
           <li class="page-item" :class="{ disabled: currentPage===1 }"><button class="page-link" @click="prevPage">«</button></li>
 
-          <li v-for="p in Array.from({ length: totalPages.value }, (_, i) => i + 1)" :key="p" class="page-item" :class="{ active: p===currentPage }">
+          <li v-for="p in Array.from({ length: totalPages }, (_, i) => i + 1)" :key="p" class="page-item" :class="{ active: p===currentPage }">
             <button class="page-link" @click="goToPage(p)">{{ p }}</button>
           </li>
 
-          <li class="page-item" :class="{ disabled: currentPage===totalPages.value }"><button class="page-link" @click="nextPage">»</button></li>
-          <li class="page-item" :class="{ disabled: currentPage===totalPages.value }"><button class="page-link" @click="lastPage">»»</button></li>
+          <li class="page-item" :class="{ disabled: currentPage===totalPages }"><button class="page-link" @click="nextPage">»</button></li>
+          <li class="page-item" :class="{ disabled: currentPage===totalPages }"><button class="page-link" @click="lastPage">»»</button></li>
         </ul>
       </nav>
     </div>

@@ -56,6 +56,13 @@ export default defineConfig({
                 target,
                 secure: false
             }
+            ,
+            // proxy API calls to the backend so fetch('/api/...') returns JSON from the server
+            '^/api': {
+                target,
+                secure: false,
+                changeOrigin: true
+            }
         },
         port: parseInt(env.DEV_SERVER_PORT || '52870'),
         https: {

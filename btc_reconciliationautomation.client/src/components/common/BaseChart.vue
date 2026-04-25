@@ -1,5 +1,5 @@
 <script setup>
-import { onMounted, ref } from 'vue'
+import { onMounted, ref, watch } from 'vue'
 import Highcharts from 'highcharts'
 
 const props = defineProps({
@@ -7,10 +7,22 @@ const props = defineProps({
 })
 
 const chartContainer = ref(null)
+let chart = null
 
 onMounted(() => {
-  Highcharts.chart(chartContainer.value, props.options)
+  if (chartContainer.value) {
+    chart = Highcharts.chart(chartContainer.value, props.options)
+  }
 })
+
+// Watch for changes in options and update the chart
+watch(() => props.options, (newOptions) => {
+  if (chart) {
+    chart.update(newOptions, true)
+  } else if (chartContainer.value) {
+    chart = Highcharts.chart(chartContainer.value, newOptions)
+  }
+}, { deep: true })
 </script>
 
 <template>

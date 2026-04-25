@@ -1,5 +1,5 @@
 <script setup>
-import { ref } from 'vue'
+import { ref, onMounted } from 'vue'
 import BaseTable from '../components/common/BaseTable.vue'
 
 const columns = [
@@ -10,12 +10,45 @@ const columns = [
   { key: 'createdAt', title: 'Date', width: '160px', render: 'timestamp' }
 ]
 
-const items = ref([
-  { id: 1, message: 'File processed', level: 'info', user: 'alice', createdAt: '2026-04-10' },
-  { id: 2, message: 'Mismatch found', level: 'warning', user: 'bob', createdAt: '2026-04-11' },
-  { id: 3, message: 'Reconciliation failed', level: 'error', user: 'carol', createdAt: '2026-04-12' },
-  { id: 4, message: 'Auto-resolved', level: 'info', user: 'dave', createdAt: '2026-04-13' }
-])
+const items = ref([])
+
+function formatDate(d) {
+  if (!d) return ''
+  try { return new Date(d).toLocaleString() } catch { return String(d) }
+}
+
+async function loadLogs() {
+  try {
+    const res = await fetch('/api/Log/latest')
+    if (!res.ok) {
+      console.error('Failed to fetch logs', res.status)
+      return
+    }
+    const ct = res.headers.get('content-type') || ''
+    if (!ct.includes('application/json')) {
+      console.error('Expected JSON but got', ct)
+      return
+    }
+    const data = await res.json()
+    // API model uses uppercase properties; map to table shape
+    items.value = (data || []).map(l => {
+      const levelName = l.loG_LEVEL ? (l.loG_LEVEL.LOG_LEVEL_NAME ?? l.loG_LEVEL.log_level_name) : (l.loG_LEVEL_ID ?? l.LOG_LEVEL_ID ?? l.loG_LEVEL_ID ?? '')
+      const userName = l.run?.TRIGGERED_BY ?? l.run?.triggereD_BY ?? l.RUN?.TRIGGERED_BY ?? l.RUN?.triggereD_BY ?? l.TRIGGERED_BY ?? l.triggereD_BY ?? ''
+
+      return {
+        id: l.loG_ID ?? l.LOG_ID ?? l.id,
+        message: l.loG_MESSAGE ?? l.LOG_MESSAGE ?? l.message,
+        level: levelName,
+        user: userName,
+        createdAt: formatDate(l.createD_AT ?? l.CREATED_AT ?? l.createdAt)
+      }
+    })
+  } catch (err) {
+    console.error('Error loading logs', err)
+  }
+}
+
+onMounted(() => { loadLogs() })
 
 const filters = [
   { key: 'level', label: 'Level', type: 'select', options: [

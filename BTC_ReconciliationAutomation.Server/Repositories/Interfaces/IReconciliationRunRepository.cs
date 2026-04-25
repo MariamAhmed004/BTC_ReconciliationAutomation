@@ -11,5 +11,6 @@ namespace BTC_ReconciliationAutomation.Server.Repositories.Interfaces
         Task AddAsync(reconciliation_run entity);
         Task UpdateAsync(reconciliation_run entity);
         Task DeleteAsync(object id);
+        Task<string> RunMainReconciliationAsync();
     }
 }

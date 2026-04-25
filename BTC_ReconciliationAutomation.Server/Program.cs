@@ -2,13 +2,16 @@ using System.Diagnostics;
 using System.Linq;
 using Microsoft.AspNetCore.Hosting.Server.Features;
 using Microsoft.Extensions.DependencyInjection;
+using System.Text.Json.Serialization;
 using Microsoft.EntityFrameworkCore;
 
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
 
-builder.Services.AddControllers();
+// configure controllers and JSON options to avoid object cycles when EF navigation properties reference each other
+builder.Services.AddControllers()
+    .AddJsonOptions(o => o.JsonSerializerOptions.ReferenceHandler = ReferenceHandler.IgnoreCycles);
 // register DbContext
 builder.Services.AddDbContext<BTC_ReconciliationAutomation.Server.Models.OracleDbContext>(opts =>
     opts.UseOracle(builder.Configuration.GetConnectionString("OracleDb")));

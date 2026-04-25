@@ -3,6 +3,8 @@ using System.Threading.Tasks;
 using Microsoft.EntityFrameworkCore;
 using BTC_ReconciliationAutomation.Server.Models;
 using BTC_ReconciliationAutomation.Server.Repositories.Interfaces;
+using Oracle.ManagedDataAccess.Client;
+using System;
 
 namespace BTC_ReconciliationAutomation.Server.Repositories.Implementation
 {
@@ -13,12 +15,32 @@ namespace BTC_ReconciliationAutomation.Server.Repositories.Implementation
 
         public async Task<IEnumerable<reconciliation_run>> GetAllAsync()
         {
-            return await _db.reconciliation_runs.AsNoTracking().ToListAsync();
+            // include related reconciliation summaries so the API returns the joined data
+            return await _db.reconciliation_runs
+                .Include(r => r.reconciliation_summaries)
+                .AsNoTracking()
+                .ToListAsync();
         }
 
         public async Task<reconciliation_run?> GetByIdAsync(object id)
         {
-            return await _db.reconciliation_runs.FindAsync(id);
+            if (id == null) return null;
+
+            // ensure we convert the id to the expected key type and include summaries
+            int key;
+            try { key = System.Convert.ToInt32(id); } catch { return null; }
+
+            return await _db.reconciliation_runs
+                .Include(r => r.reconciliation_summaries)
+                .Include(r => r.generated_files)
+                    .ThenInclude(f => f.DELIVERY_METHOD)
+                .Include(r => r.generated_files)
+                    .ThenInclude(f => f.EMAIL_STATUS)
+                .Include(r => r.system_logs)
+                    .ThenInclude(l => l.LOG_LEVEL)
+                .Include(r => r.CONFIG)
+                .AsNoTracking()
+                .FirstOrDefaultAsync(r => r.RUN_ID == key);
         }
 
         public async Task AddAsync(reconciliation_run entity)
@@ -37,6 +59,29 @@ namespace BTC_ReconciliationAutomation.Server.Repositories.Implementation
         {
             var e = await _db.reconciliation_runs.FindAsync(id);
             if (e != null) { _db.reconciliation_runs.Remove(e); await _db.SaveChangesAsync(); }
+        }
+
+        public async Task<string> RunMainReconciliationAsync()
+        {
+            try
+            {
+                var connection = _db.Database.GetDbConnection();
+                await connection.OpenAsync();
+
+                using (var command = connection.CreateCommand())
+                {
+                    command.CommandText = "BEGIN run_main_reconciliation_log; END;";
+                    command.CommandType = System.Data.CommandType.Text;
+
+                    await command.ExecuteNonQueryAsync();
+                }
+
+                return "Reconciliation process completed successfully";
+            }
+            catch (Exception ex)
+            {
+                return $"Error running reconciliation: {ex.Message}";
+            }
         }
     }
 }

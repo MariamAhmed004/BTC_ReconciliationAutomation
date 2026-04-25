@@ -16,6 +16,14 @@ namespace BTC_ReconciliationAutomation.Server.Controllers
             _repo = repo;
         }
 
+        // Get latest files with related data
+        [HttpGet("latest")]
+        public async Task<IActionResult> GetLatest([FromQuery] int count = 50)
+        {
+            var files = await _repo.GetLatestFilesAsync(count);
+            return Ok(files);
+        }
+
         // List files generated in a run
         [HttpGet("run/{runId}")]
         public async Task<IActionResult> ListByRun([FromRoute] object runId)
