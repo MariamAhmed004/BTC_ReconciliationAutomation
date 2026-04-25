@@ -60,8 +60,7 @@ namespace BTC_ReconciliationAutomation.Server.Controllers
                 fileName = f.FILE_NAME,
                 filePath = f.SERVER_FILE_PATH,
                 createdAt = f.CREATED_AT,
-                deliveryMethod = f.DELIVERY_METHOD?.DELIVERY_METHOD1,
-                emailStatus = f.EMAIL_STATUS?.EMAIL_STATUS1
+                fileType = f.FILE_TYPE?.FILE_TYPE_NAME
             }).ToList();
 
             // Get related logs
@@ -80,23 +79,24 @@ namespace BTC_ReconciliationAutomation.Server.Controllers
             return Ok(new
             {
                 runId = run.RUN_ID,
-                status = run.STATUS,
+                status = run.RUN_STATUS?.RUN_STATUS1,
                 runDate = run.RUN_DATE,
                 errorMessage = run.ERROR_MESSAGE,
                 triggeredBy = run.TRIGGERED_BY,
+                deliveryMethod = run.DELIVERY_METHOD?.DELIVERY_METHOD1,
+                emailStatus = run.EMAIL_STATUS?.EMAIL_STATUS1,
                 // Summary data
                 recordsProcessed = summary?.TOTAL_RECORDS_PROCESSED ?? 0,
                 totalDiscrepancies = summary?.TOTAL_DISCREPANCIES ?? 0,
                 mismatchCount = summary?.MISMATCH_COUNT ?? 0,
                 missingInCustomer = summary?.MISSING_IN_CUSTOMER_COUNT ?? 0,
                 missingInBilling = summary?.MISSING_IN_BILLING_COUNT ?? 0,
-                statusErrorCount = summary?.STATUS_ERROR_COUNT ?? 0,
                 // Configuration data
                 configuration = config != null ? new
                 {
                     configId = config.CONFIG_ID,
                     emailRecipients = config.EMAIL_RECIPIENTS,
-                    scheduleExpression = config.SCHEDULE_EXPRESSION,
+                    scheduleExpression = $"{config.FREQUENCY} on {config.DAY_OF_MONTH} at {config.RUN_TIME}",
                     isActive = config.IS_ACTIVE,
                     effectiveFrom = config.EFFECTIVE_FROM,
                     effectiveTo = config.EFFECTIVE_TO
@@ -114,15 +114,11 @@ namespace BTC_ReconciliationAutomation.Server.Controllers
             var all = await _repo.GetAllAsync();
             if (!string.IsNullOrEmpty(status))
             {
-                // attempt to filter by a property named STATUS (case-insensitive)
-                var filtered = System.Linq.Enumerable.Where(all, r =>
-                {
-                    var type = r.GetType();
-                    var prop = type.GetProperty("STATUS") ?? type.GetProperty("Status");
-                    if (prop == null) return false;
-                    var val = prop.GetValue(r)?.ToString();
-                    return string.Equals(val, status, System.StringComparison.OrdinalIgnoreCase);
-                });
+                // Filter by RUN_STATUS relationship
+                var filtered = all.Where(r =>
+                    r.RUN_STATUS != null &&
+                    string.Equals(r.RUN_STATUS.RUN_STATUS1, status, System.StringComparison.OrdinalIgnoreCase)
+                );
                 return Ok(filtered);
             }
 
@@ -141,8 +137,8 @@ namespace BTC_ReconciliationAutomation.Server.Controllers
                 .OrderByDescending(r => r.RUN_DATE)
                 .FirstOrDefault();
 
-            // Get last execution status (Failed/Completed)
-            var lastStatus = lastRun?.STATUS ?? "N/A";
+            // Get last execution status from RUN_STATUS relationship
+            var lastStatus = lastRun?.RUN_STATUS?.RUN_STATUS1 ?? "N/A";
             var lastRunDate = lastRun?.RUN_DATE;
 
             // Get the latest summary for discrepancy counts
@@ -152,14 +148,12 @@ namespace BTC_ReconciliationAutomation.Server.Controllers
             var currentMonth = System.DateTime.Now.Month;
             var currentYear = System.DateTime.Now.Year;
             var totalRunsThisMonth = allList.Count(r => 
-                r.RUN_DATE.HasValue && 
-                r.RUN_DATE.Value.Month == currentMonth && 
-                r.RUN_DATE.Value.Year == currentYear);
+                r.RUN_DATE.Month == currentMonth && 
+                r.RUN_DATE.Year == currentYear);
 
             // Calculate total discrepancies from the last run
             var totalDiscrepancies = lastSummary?.TOTAL_DISCREPANCIES ?? 0;
             var missingInRowb = lastSummary?.MISSING_IN_BILLING_COUNT ?? 0;
-            var willBeDeactivated = lastSummary?.STATUS_ERROR_COUNT ?? 0;
             var mismatchedPackages = lastSummary?.MISMATCH_COUNT ?? 0;
 
             return Ok(new
@@ -170,9 +164,10 @@ namespace BTC_ReconciliationAutomation.Server.Controllers
                 totalRunsThisMonth = totalRunsThisMonth,
                 totalDiscrepancies = totalDiscrepancies,
                 missingInRowb = missingInRowb,
-                willBeDeactivatedInRowb = willBeDeactivated,
                 mismatchedPackages = mismatchedPackages,
-                triggeredBy = lastRun?.TRIGGERED_BY
+                triggeredBy = lastRun?.TRIGGERED_BY,
+                deliveryMethod = lastRun?.DELIVERY_METHOD?.DELIVERY_METHOD1,
+                emailStatus = lastRun?.EMAIL_STATUS?.EMAIL_STATUS1
             });
         }
 
@@ -191,10 +186,12 @@ namespace BTC_ReconciliationAutomation.Server.Controllers
             return Ok(new
             {
                 runId = lastRun.RUN_ID,
-                status = lastRun.STATUS,
+                status = lastRun.RUN_STATUS?.RUN_STATUS1,
                 runDate = lastRun.RUN_DATE,
                 errorMessage = lastRun.ERROR_MESSAGE,
-                triggeredBy = lastRun.TRIGGERED_BY
+                triggeredBy = lastRun.TRIGGERED_BY,
+                deliveryMethod = lastRun.DELIVERY_METHOD?.DELIVERY_METHOD1,
+                emailStatus = lastRun.EMAIL_STATUS?.EMAIL_STATUS1
             });
         }
 
@@ -214,14 +211,13 @@ namespace BTC_ReconciliationAutomation.Server.Controllers
             {
                 missingInBilling = lastSummary?.MISSING_IN_BILLING_COUNT ?? 0,
                 missingInCustomer = lastSummary?.MISSING_IN_CUSTOMER_COUNT ?? 0,
-                mismatch = lastSummary?.MISMATCH_COUNT ?? 0,
-                statusError = lastSummary?.STATUS_ERROR_COUNT ?? 0
+                mismatch = lastSummary?.MISMATCH_COUNT ?? 0
             };
 
             // Line chart data - total discrepancies over time (last 12 months)
             var oneYearAgo = System.DateTime.Now.AddMonths(-12);
             var runsLastYear = allList
-                .Where(r => r.RUN_DATE.HasValue && r.RUN_DATE.Value >= oneYearAgo)
+                .Where(r => r.RUN_DATE >= oneYearAgo)
                 .OrderBy(r => r.RUN_DATE)
                 .ToList();
 
@@ -231,10 +227,11 @@ namespace BTC_ReconciliationAutomation.Server.Controllers
                 totalDiscrepancies = r.reconciliation_summaries?.FirstOrDefault()?.TOTAL_DISCREPANCIES ?? 0
             }).ToList();
 
-            // Success rate calculation
+            // Success rate calculation using RUN_STATUS relationship
             var totalRuns = allList.Count;
             var completedRuns = allList.Count(r => 
-                string.Equals(r.STATUS, "COMPLETED", System.StringComparison.OrdinalIgnoreCase));
+                r.RUN_STATUS != null &&
+                string.Equals(r.RUN_STATUS.RUN_STATUS1, "COMPLETED", System.StringComparison.OrdinalIgnoreCase));
             var successRate = totalRuns > 0 ? (decimal)completedRuns / totalRuns * 100 : 0;
 
             return Ok(new

@@ -6,18 +6,18 @@ using Microsoft.EntityFrameworkCore;
 
 namespace BTC_ReconciliationAutomation.Server.Models;
 
-[Table("email_status")]
-public partial class email_status
+[Table("run_status")]
+public partial class run_status
 {
     [Key]
-    [Precision(8)]
-    public int EMAIL_STATUS_ID { get; set; }
+    [Column(TypeName = "NUMBER")]
+    public decimal RUN_STATUS_ID { get; set; }
 
-    [Column("EMAIL_STATUS")]
-    [StringLength(150)]
+    [Column("RUN_STATUS")]
+    [StringLength(50)]
     [Unicode(false)]
-    public string EMAIL_STATUS1 { get; set; } = null!;
+    public string RUN_STATUS1 { get; set; } = null!;
 
-    [InverseProperty("EMAIL_STATUS")]
+    [InverseProperty("RUN_STATUS")]
     public virtual ICollection<reconciliation_run> reconciliation_runs { get; set; } = new List<reconciliation_run>();
 }

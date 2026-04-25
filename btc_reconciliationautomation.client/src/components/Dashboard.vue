@@ -33,8 +33,7 @@ const chartData = ref({
   pieChart: {
     missingInBilling: 0,
     missingInCustomer: 0,
-    mismatch: 0,
-    statusError: 0
+    mismatch: 0
   },
   lineChart: [],
   successRate: 0
@@ -81,7 +80,8 @@ const fetchLatestRuns = async () => {
         ? summaries.reduce((acc, s) => acc + (Number(s.totaL_DISCREPANCIES ?? s.TOTAL_DISCREPANCIES ?? 0) || 0), 0)
         : (summaries ?? 0)
 
-      const statusValue = r.status ?? r.STATUS ?? r.Status
+      // Get status from RUN_STATUS relationship
+      const statusValue = r.ruN_STATUS?.ruN_STATUS1 ?? r.RUN_STATUS?.RUN_STATUS1 ?? 'UNKNOWN'
 
       return {
         id: r.ruN_ID ?? r.RUN_ID ?? r.id,
@@ -145,8 +145,7 @@ const pieChartOptions = computed(() => {
   const pieData = [
     { name: 'Missing in Billing', y: Number(chartData.value.pieChart.missingInBilling) },
     { name: 'Missing in Customer', y: Number(chartData.value.pieChart.missingInCustomer) },
-    { name: 'Mismatched Package', y: Number(chartData.value.pieChart.mismatch) },
-    { name: 'Status Error', y: Number(chartData.value.pieChart.statusError) }
+    { name: 'Mismatched Package', y: Number(chartData.value.pieChart.mismatch) }
   ]
 
   console.log('Pie chart series data:', pieData)

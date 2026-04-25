@@ -19,17 +19,17 @@ public partial class system_log
     public string? LOG_MESSAGE { get; set; }
 
     [Precision(6)]
-    public DateTime? CREATED_AT { get; set; }
+    public DateTime CREATED_AT { get; set; }
 
     [Precision(8)]
-    public int? LOG_LEVEL_ID { get; set; }
+    public int LOG_LEVEL_ID { get; set; }
 
     [Precision(8)]
     public int? RUN_ID { get; set; }
 
     [ForeignKey("LOG_LEVEL_ID")]
     [InverseProperty("system_logs")]
-    public virtual log_level? LOG_LEVEL { get; set; }
+    public virtual log_level LOG_LEVEL { get; set; } = null!;
 
     [ForeignKey("RUN_ID")]
     [InverseProperty("system_logs")]

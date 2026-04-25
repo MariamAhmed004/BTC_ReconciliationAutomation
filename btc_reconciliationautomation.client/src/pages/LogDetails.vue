@@ -70,7 +70,7 @@ async function loadDetails() {
     details.value.totalDiscrepancies = data.totalDiscrepancies || 0
     details.value.matchedPackages = data.mismatchCount || 0
     details.value.addedToRowB = data.missingInBilling || 0
-    details.value.deactivatedInRowB = data.statusErrorCount || 0
+    details.value.deactivatedInRowB = 0 // Removed from backend
 
     // Map configuration
     if (data.configuration) {
@@ -86,8 +86,7 @@ async function loadDetails() {
       url: f.filePath || '#',
       fileId: f.fileId,
       createdAt: formatDate(f.createdAt),
-      deliveryMethod: f.deliveryMethod,
-      emailStatus: f.emailStatus
+      fileType: f.fileType || 'N/A'
     }))
 
     // Map logs

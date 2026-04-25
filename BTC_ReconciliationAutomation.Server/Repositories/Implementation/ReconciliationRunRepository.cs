@@ -18,6 +18,10 @@ namespace BTC_ReconciliationAutomation.Server.Repositories.Implementation
             // include related reconciliation summaries so the API returns the joined data
             return await _db.reconciliation_runs
                 .Include(r => r.reconciliation_summaries)
+                .Include(r => r.RUN_STATUS)
+                .Include(r => r.DELIVERY_METHOD)
+                .Include(r => r.EMAIL_STATUS)
+                .Include(r => r.CONFIG)
                 .AsNoTracking()
                 .ToListAsync();
         }
@@ -33,12 +37,13 @@ namespace BTC_ReconciliationAutomation.Server.Repositories.Implementation
             return await _db.reconciliation_runs
                 .Include(r => r.reconciliation_summaries)
                 .Include(r => r.generated_files)
-                    .ThenInclude(f => f.DELIVERY_METHOD)
-                .Include(r => r.generated_files)
-                    .ThenInclude(f => f.EMAIL_STATUS)
+                    .ThenInclude(f => f.FILE_TYPE)
                 .Include(r => r.system_logs)
                     .ThenInclude(l => l.LOG_LEVEL)
                 .Include(r => r.CONFIG)
+                .Include(r => r.RUN_STATUS)
+                .Include(r => r.DELIVERY_METHOD)
+                .Include(r => r.EMAIL_STATUS)
                 .AsNoTracking()
                 .FirstOrDefaultAsync(r => r.RUN_ID == key);
         }

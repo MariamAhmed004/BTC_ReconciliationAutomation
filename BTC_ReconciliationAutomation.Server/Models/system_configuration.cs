@@ -13,26 +13,34 @@ public partial class system_configuration
     [Precision(8)]
     public int CONFIG_ID { get; set; }
 
-    [StringLength(50)]
+    [StringLength(950)]
     [Unicode(false)]
     public string? EMAIL_RECIPIENTS { get; set; }
 
-    [StringLength(50)]
+    [StringLength(100)]
     [Unicode(false)]
-    public string? SCHEDULE_EXPRESSION { get; set; }
+    public string? DAY_OF_MONTH { get; set; }
 
-    [StringLength(50)]
+    [StringLength(1)]
     [Unicode(false)]
-    public string? IS_ACTIVE { get; set; }
+    public string IS_ACTIVE { get; set; } = null!;
 
     [Precision(6)]
-    public DateTime? EFFECTIVE_FROM { get; set; }
+    public DateTime EFFECTIVE_FROM { get; set; }
 
     [Precision(6)]
     public DateTime? EFFECTIVE_TO { get; set; }
 
     [Precision(6)]
-    public DateTime? CREATED_AT { get; set; }
+    public DateTime CREATED_AT { get; set; }
+
+    [StringLength(50)]
+    [Unicode(false)]
+    public string? FREQUENCY { get; set; }
+
+    [StringLength(50)]
+    [Unicode(false)]
+    public string? RUN_TIME { get; set; }
 
     [InverseProperty("CONFIG")]
     public virtual ICollection<reconciliation_run> reconciliation_runs { get; set; } = new List<reconciliation_run>();

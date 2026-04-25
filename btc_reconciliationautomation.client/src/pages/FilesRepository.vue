@@ -3,9 +3,10 @@ import { ref, onMounted } from 'vue'
 import BaseTable from '../components/common/BaseTable.vue'
 
 const columns = [
-  { key: 'status', title: 'EMAIL STATUS', width: '80px', render: 'status' },
+  { key: 'status', title: 'STATUS', width: '120px', render: 'status' },
   { key: 'createdAt', title: 'CREATED AT', width: '200px', render: 'timestamp' },
   { key: 'fileName', title: 'FILE NAME' },
+  { key: 'fileType', title: 'FILE TYPE', width: '150px' },
   { key: 'delivery', title: 'DELIVERY' },
   { key: 'actions', title: 'ACTIONS', width: '180px' }
 ]
@@ -24,10 +25,12 @@ async function loadFiles() {
       const data = await res.json()
       items.value = (data || []).map(i => ({
         id: i.filE_ID ?? i.FILE_ID,
-        status: i.emaiL_STATUS?.emaiL_STATUS1 ?? i.EMAIL_STATUS?.EMAIL_STATUS1 ?? 'unknown',
+        status: i.ruN?.ruN_STATUS?.ruN_STATUS1 ?? i.RUN?.RUN_STATUS?.RUN_STATUS1 ?? 'unknown',
         createdAt: formatDate(i.createD_AT ?? i.CREATED_AT),
         fileName: i.filE_NAME ?? i.FILE_NAME ?? '',
-        delivery: i.deliverY_METHOD?.deliverY_METHOD1 ?? i.DELIVERY_METHOD?.DELIVERY_METHOD1 ?? 'N/A',
+        fileType: i.filE_TYPE?.filE_TYPE_NAME ?? i.FILE_TYPE?.FILE_TYPE_NAME ?? 'N/A',
+        delivery: i.ruN?.deliverY_METHOD?.deliverY_METHOD1 ?? i.RUN?.DELIVERY_METHOD?.DELIVERY_METHOD1 ?? 'N/A',
+        emailStatus: i.ruN?.emaiL_STATUS?.emaiL_STATUS1 ?? i.RUN?.EMAIL_STATUS?.EMAIL_STATUS1 ?? 'N/A',
         actions: ''
       }))
       return
@@ -38,9 +41,9 @@ async function loadFiles() {
 
   // sample placeholder rows
   items.value = [
-    { status: 'ok', createdAt: formatDate('2025-10-15T11:23:04'), fileName: '32_Ali_Hassan.xml', delivery: 'Email to ali@acme.com', actions: '' },
-    { status: 'error', createdAt: formatDate('2025-10-15T11:20:10'), fileName: '12_Sarah_Ahmed.xml', delivery: 'Manual review required', actions: '' },
-    { status: 'ok', createdAt: formatDate('2025-10-14T09:05:30'), fileName: '18_Dana_Maohammed.xml', delivery: 'Downloaded', actions: '' }
+    { status: 'ok', createdAt: formatDate('2025-10-15T11:23:04'), fileName: '32_Ali_Hassan.xml', fileType: 'XML', delivery: 'Email to ali@acme.com', actions: '' },
+    { status: 'error', createdAt: formatDate('2025-10-15T11:20:10'), fileName: '12_Sarah_Ahmed.xml', fileType: 'XML', delivery: 'Manual review required', actions: '' },
+    { status: 'ok', createdAt: formatDate('2025-10-14T09:05:30'), fileName: '18_Dana_Maohammed.xml', fileType: 'XML', delivery: 'Downloaded', actions: '' }
   ]
 }
 
@@ -48,7 +51,7 @@ onMounted(() => { loadFiles() })
 
 const filters = [
   { key: 'createdAt', label: 'Date', type: 'date' },
-  { key: 'status', label: 'Status', type: 'select', options: [ { value: '', label: 'Any' }, { value: 'ok', label: 'Success' }, { value: 'error', label: 'Failure' } ], default: '' }
+  { key: 'status', label: 'Status', type: 'select', options: [ { value: '', label: 'Any' }, { value: 'COMPLETED', label: 'Completed' }, { value: 'FAILED', label: 'Failed' }, { value: 'PENDING', label: 'Pending' } ], default: '' }
 ]
 
 function onRowClick(item) {
