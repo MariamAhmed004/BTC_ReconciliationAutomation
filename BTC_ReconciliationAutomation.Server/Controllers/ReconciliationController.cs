@@ -11,10 +11,12 @@ namespace BTC_ReconciliationAutomation.Server.Controllers
     public class ReconciliationController : ControllerBase
     {
         private readonly IReconciliationRunRepository _repo;
+        private readonly IReconciliationStatsRepository _statsRepo;
 
-        public ReconciliationController(IReconciliationRunRepository repo)
+        public ReconciliationController(IReconciliationRunRepository repo, IReconciliationStatsRepository statsRepo)
         {
             _repo = repo;
+            _statsRepo = statsRepo;
         }
 
         // Trigger a new run (manual)
@@ -240,6 +242,31 @@ namespace BTC_ReconciliationAutomation.Server.Controllers
                 lineChart = lineChartData,
                 successRate = System.Math.Round(successRate, 2)
             });
+        }
+
+        // Get live reconciliation statistics
+        [HttpGet("dashboard/live-stats")]
+        public async Task<IActionResult> GetLiveStats()
+        {
+            try
+            {
+                // Run queries sequentially to avoid DbContext threading issues
+                var missingInRowb = await _statsRepo.GetMissingInRowbCountAsync();
+                var notActiveInSiebel = await _statsRepo.GetNotActiveInSiebelCountAsync();
+                var mismatchedPackages = await _statsRepo.GetMismatchedPackagesCountAsync();
+
+                return Ok(new
+                {
+                    missingInRowb = missingInRowb,
+                    notActiveInSiebel = notActiveInSiebel,
+                    mismatchedPackages = mismatchedPackages,
+                    timestamp = System.DateTime.Now
+                });
+            }
+            catch (System.Exception ex)
+            {
+                return StatusCode(500, new { message = "Error fetching live stats", error = ex.Message });
+            }
         }
     }
 }

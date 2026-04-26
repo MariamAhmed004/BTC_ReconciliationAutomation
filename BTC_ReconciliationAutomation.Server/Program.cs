@@ -22,6 +22,7 @@ builder.Services.AddScoped<BTC_ReconciliationAutomation.Server.Repositories.Inte
 builder.Services.AddScoped<BTC_ReconciliationAutomation.Server.Repositories.Interfaces.IFileRepository, BTC_ReconciliationAutomation.Server.Repositories.Implementation.FileRepository>();
 builder.Services.AddScoped<BTC_ReconciliationAutomation.Server.Repositories.Interfaces.ISystemLogRepository, BTC_ReconciliationAutomation.Server.Repositories.Implementation.SystemLogRepository>();
 builder.Services.AddScoped<BTC_ReconciliationAutomation.Server.Repositories.Interfaces.IConfigurationRepository, BTC_ReconciliationAutomation.Server.Repositories.Implementation.ConfigurationRepository>();
+builder.Services.AddScoped<BTC_ReconciliationAutomation.Server.Repositories.Interfaces.IReconciliationStatsRepository, BTC_ReconciliationAutomation.Server.Repositories.Implementation.ReconciliationStatsRepository>();
 // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();

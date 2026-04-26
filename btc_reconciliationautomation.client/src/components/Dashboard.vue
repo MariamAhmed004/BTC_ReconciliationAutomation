@@ -28,6 +28,14 @@ const stats = ref({
   triggeredBy: 'N/A'
 })
 
+// Live statistics (updated on refresh)
+const liveStats = ref({
+  missingInRowb: 0,
+  notActiveInSiebel: 0,
+  mismatchedPackages: 0,
+  timestamp: null
+})
+
 // Chart data
 const chartData = ref({
   pieChart: {
@@ -137,6 +145,21 @@ const fetchChartData = async () => {
     chartData.value = data
   } catch (err) {
     console.error('Error fetching chart data:', err)
+  }
+}
+
+// Fetch live reconciliation statistics
+const fetchLiveStats = async () => {
+  try {
+    const response = await fetch('/api/reconciliation/dashboard/live-stats')
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`)
+    }
+    const data = await response.json()
+    console.log('Live stats received:', data)
+    liveStats.value = data
+  } catch (err) {
+    console.error('Error fetching live stats:', err)
   }
 }
 
@@ -280,12 +303,14 @@ const getStatusClass = () => {
 
 const refreshAll = async () => {
   await fetchDashboardStats()
+  await fetchLiveStats()
   await fetchChartData()
   await fetchLatestRuns()
 }
 
 onMounted(() => {
   fetchDashboardStats()
+  fetchLiveStats()
   fetchChartData()
   fetchLatestRuns()
 })
@@ -326,17 +351,17 @@ onMounted(() => {
             <div class="row text-center">
               <div class="col-md-4 mb-2">
                 <BaseCard title="Missing in ROWB" headerClass="bg-light text-dark border" bodyClass="py-3">
-                  {{ stats.missingInRowb }}
+                  {{ liveStats.missingInRowb }}
                 </BaseCard>
               </div>
               <div class="col-md-4 mb-2">
-                <BaseCard title="To be deactivated in ROWB" headerClass="bg-light text-dark border" bodyClass="py-3">
-                  {{ stats.willBeDeactivatedInRowb }}
+                <BaseCard title="Not Active in Siebel" headerClass="bg-light text-dark border" bodyClass="py-3">
+                  {{ liveStats.notActiveInSiebel }}
                 </BaseCard>
               </div>
               <div class="col-md-4 mb-2">
                 <BaseCard title="Mismatched packages" headerClass="bg-light text-dark border" bodyClass="py-3">
-                  {{ stats.mismatchedPackages }}
+                  {{ liveStats.mismatchedPackages }}
                 </BaseCard>
               </div>
             </div>
