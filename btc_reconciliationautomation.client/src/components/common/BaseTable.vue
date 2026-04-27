@@ -156,16 +156,21 @@ watch(pageSize, () => { currentPage.value = 1 })
     </div>
 
     <div v-if="showFilter" class="mt-2">
-      <BaseFilter :filters="props.filters" @apply="(payload)=>{ 
-        // payload may contain active filter values and optional sort info
-        const p = { ...payload }
-        if (p.sort) {
-          sortKey.value = p.sort.key || ''
-          sortDir.value = p.sort.dir || 'asc'
-          delete p.sort
-        }
-        activeFilters.value = p
-      }" @clear="()=>{ initFilters() }" />
+      <BaseFilter 
+        :filters="props.filters" 
+        @apply="(payload)=>{ 
+          const p = { ...payload }
+          if (p.sort) {
+            sortKey.value = p.sort.key || ''
+            sortDir.value = p.sort.dir || 'asc'
+            delete p.sort
+          }
+          activeFilters.value = p
+          showFilter = false
+        }" 
+        @clear="()=>{ initFilters() }" 
+        @close="()=>{ showFilter = false }"
+      />
     </div>
 
     <div class="table-responsive">
