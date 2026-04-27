@@ -20,6 +20,8 @@ const pageSize = ref(props.pageSizeOptions[0] || 10)
 const currentPage = ref(1)
 const showFilter = ref(false)
 const activeFilters = ref({})
+const sortKey = ref('')
+const sortDir = ref('asc')
 
 // Helper function to get badge class based on status
 function getStatusBadgeClass(status) {
@@ -34,6 +36,8 @@ function getStatusBadgeClass(status) {
 function initFilters() {
   activeFilters.value = {}
   props.filters.forEach(f => { activeFilters.value[f.key] = f.default ?? '' })
+  sortKey.value = ''
+  sortDir.value = 'asc'
 }
 
 watch(() => props.filters, initFilters, { immediate: true })
@@ -69,6 +73,28 @@ const filteredItems = computed(() => {
         return itemVal != null && String(itemVal).toLowerCase().includes(String(val).toLowerCase())
       })
     })
+  }
+
+  // apply sorting if requested
+  if (sortKey.value) {
+    const key = sortKey.value
+    const dir = sortDir.value === 'desc' ? -1 : 1
+    const compare = (a, b) => {
+      const va = a[key]
+      const vb = b[key]
+      if (va == null && vb == null) return 0
+      if (va == null) return -1
+      if (vb == null) return 1
+      const na = Number(va)
+      const nb = Number(vb)
+      if (!isNaN(na) && !isNaN(nb)) return (na - nb) * dir
+      const da = Date.parse(va)
+      const db = Date.parse(vb)
+      if (!isNaN(da) && !isNaN(db)) return (da - db) * dir
+      return String(va).localeCompare(String(vb)) * dir
+    }
+    // create a shallow copy before sorting to avoid mutating props.items
+    result = [...result].sort(compare)
   }
 
   return result
@@ -130,7 +156,16 @@ watch(pageSize, () => { currentPage.value = 1 })
     </div>
 
     <div v-if="showFilter" class="mt-2">
-      <BaseFilter :filters="props.filters" @apply="(c)=>{ activeFilters.value = c }" @clear="()=>{ initFilters() }" />
+      <BaseFilter :filters="props.filters" @apply="(payload)=>{ 
+        // payload may contain active filter values and optional sort info
+        const p = { ...payload }
+        if (p.sort) {
+          sortKey.value = p.sort.key || ''
+          sortDir.value = p.sort.dir || 'asc'
+          delete p.sort
+        }
+        activeFilters.value = p
+      }" @clear="()=>{ initFilters() }" />
     </div>
 
     <div class="table-responsive">

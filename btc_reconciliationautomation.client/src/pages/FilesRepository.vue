@@ -50,8 +50,25 @@ async function loadFiles() {
 onMounted(() => { loadFiles() })
 
 const filters = [
-  { key: 'createdAt', label: 'Date', type: 'date' },
-  { key: 'status', label: 'Status', type: 'select', options: [ { value: '', label: 'Any' }, { value: 'COMPLETED', label: 'Completed' }, { value: 'FAILED', label: 'Failed' }, { value: 'PENDING', label: 'Pending' } ], default: '' }
+  { key: 'status', label: 'Status', type: 'select', options: [
+    { value: '', label: 'Any' },
+    { value: 'COMPLETED', label: 'Completed' },
+    { value: 'FAILED', label: 'Failed' },
+    { value: 'PENDING', label: 'Pending' }
+  ], default: '' },
+  { key: 'fileType', label: 'File Type', type: 'select', options: [
+    { value: '', label: 'Any' },
+    { value: 'XML', label: 'XML' },
+    { value: 'CSV', label: 'CSV' },
+    { value: 'JSON', label: 'JSON' }
+  ], default: '' },
+  { key: 'delivery', label: 'Delivery', type: 'select', options: [
+    { value: '', label: 'Any' },
+    { value: 'Email', label: 'Email' },
+    { value: 'Downloaded', label: 'Downloaded' },
+    { value: 'Manual', label: 'Manual' }
+  ], default: '' },
+  { key: 'createdAt', label: 'Date', type: 'date' }
 ]
 
 function onRowClick(item) {

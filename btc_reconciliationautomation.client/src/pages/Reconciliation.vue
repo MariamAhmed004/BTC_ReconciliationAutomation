@@ -23,6 +23,17 @@ function getStatusBadgeClass(status) {
 
 const items = ref([])
 
+const filters = [
+  { key: 'status', label: 'Status', type: 'select', options: [
+    { value: '', label: 'Any' },
+    { value: 'COMPLETED', label: 'Completed' },
+    { value: 'FAILED', label: 'Failed' },
+    { value: 'PENDING', label: 'Pending' }
+  ], default: '' },
+  { key: 'triggeredBy', label: 'Triggered by', type: 'text', placeholder: 'Username or system' },
+  { key: 'timestamp', label: 'Date', type: 'date' }
+]
+
 function formatDate(d) {
   if (!d) return ''
   try {
@@ -102,7 +113,16 @@ onMounted(() => { loadRuns() })
     </PageHeader>
 
     <section class="mt-4">
-      <BaseTable :columns="columns" :items="items" :showSearch="true" :showPagination="true" :rowClickable="true" @row-click="(item) => $router.push({ name: 'LogDetails', params: { id: item.id } })" />
+      <BaseTable
+        :columns="columns"
+        :items="items"
+        :showSearch="true"
+        :showPagination="true"
+        :pageSizeOptions="[10,25,50]"
+        :filters="filters"
+        :rowClickable="true"
+        @row-click="(item) => $router.push({ name: 'LogDetails', params: { id: item.id } })"
+      />
     </section>
   </div>
 </template>

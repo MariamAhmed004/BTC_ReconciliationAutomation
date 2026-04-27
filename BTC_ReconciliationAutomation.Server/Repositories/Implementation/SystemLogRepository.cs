@@ -13,7 +13,11 @@ namespace BTC_ReconciliationAutomation.Server.Repositories.Implementation
 
         public async Task<IEnumerable<system_log>> GetAllAsync()
         {
-            return await _db.system_logs.AsNoTracking().ToListAsync();
+            return await _db.system_logs
+                .AsNoTracking()
+                .Include(s => s.LOG_LEVEL)
+                .Include(s => s.RUN)
+                .ToListAsync();
         }
 
         public async Task<system_log?> GetByIdAsync(object id)
