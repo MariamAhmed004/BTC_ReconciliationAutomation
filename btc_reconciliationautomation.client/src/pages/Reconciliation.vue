@@ -29,9 +29,9 @@ const filters = [
     { value: 'COMPLETED', label: 'Completed' },
     { value: 'FAILED', label: 'Failed' },
     { value: 'PENDING', label: 'Pending' }
-  ], default: '' },
+  ], default: '', sortable: false },
   { key: 'triggeredBy', label: 'Triggered by', type: 'text', placeholder: 'Username or system' },
-  { key: 'timestamp', label: 'Date', type: 'date' }
+  { key: 'timestampRaw', label: 'Date', type: 'date' }
 ]
 
 function formatDate(d) {
@@ -77,11 +77,15 @@ async function loadRuns() {
       // Get status from RUN_STATUS relationship
       const statusValue = r.ruN_STATUS?.ruN_STATUS1 ?? r.RUN_STATUS?.RUN_STATUS1 ?? 'UNKNOWN'
 
+      // Get raw date for filtering
+      const rawDate = r.ruN_DATE ?? r.RUN_DATE ?? r.runDate
+
       return {
         id: r.ruN_ID ?? r.RUN_ID ?? r.id,
         status: statusValue,
         statusBadge: statusValue, // Use statusBadge for rendering
-        timestamp: formatDate(r.ruN_DATE ?? r.RUN_DATE ?? r.runDate),
+        timestamp: formatDate(rawDate), // Formatted for display
+        timestampRaw: rawDate, // Keep raw date for filtering
         discrepancies: totalDiscrepancies,
         triggeredBy: r.triggereD_BY ?? r.TRIGGERED_BY ?? r.triggeredBy
       }

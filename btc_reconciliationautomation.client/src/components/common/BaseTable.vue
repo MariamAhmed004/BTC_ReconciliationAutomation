@@ -67,8 +67,28 @@ const filteredItems = computed(() => {
         const val = activeFilters.value[f.key]
         if (val === undefined || val === null || val === '') return true
         const itemVal = item[f.key]
-        if (f.type === 'select') return String(itemVal) === String(val)
-        if (f.type === 'date') return String(itemVal) === String(val)
+
+        if (f.type === 'select') {
+          // Case-insensitive comparison for select filters
+          return String(itemVal).toUpperCase() === String(val).toUpperCase()
+        }
+
+        if (f.type === 'date') {
+          // For date filtering, extract date portion from formatted timestamp
+          if (!itemVal) return false
+          try {
+            // Parse the item value as a date
+            const itemDate = new Date(itemVal)
+            // Parse the filter value (input date format: YYYY-MM-DD)
+            const filterDate = new Date(val)
+            // Compare only the date parts (ignore time)
+            return itemDate.toDateString() === filterDate.toDateString()
+          } catch (e) {
+            // Fallback: try string contains for malformed dates
+            return String(itemVal).includes(String(val))
+          }
+        }
+
         // default: text contains
         return itemVal != null && String(itemVal).toLowerCase().includes(String(val).toLowerCase())
       })
@@ -127,6 +147,25 @@ function lastPage() { goToPage(totalPages.value) }
 
 // reset page when pageSize changes
 watch(pageSize, () => { currentPage.value = 1 })
+
+function handleApplyFilters(payload) {
+  const p = { ...payload }
+  if (p.sort) {
+    sortKey.value = p.sort.key || ''
+    sortDir.value = p.sort.dir || 'asc'
+    delete p.sort
+  }
+  activeFilters.value = p
+  showFilter.value = false
+}
+
+function handleClearFilters() {
+  initFilters()
+}
+
+function handleCloseFilter() {
+  showFilter.value = false
+}
 </script>
 
 <template>
@@ -158,18 +197,9 @@ watch(pageSize, () => { currentPage.value = 1 })
     <div v-if="showFilter" class="mt-2">
       <BaseFilter 
         :filters="props.filters" 
-        @apply="(payload)=>{ 
-          const p = { ...payload }
-          if (p.sort) {
-            sortKey.value = p.sort.key || ''
-            sortDir.value = p.sort.dir || 'asc'
-            delete p.sort
-          }
-          activeFilters.value = p
-          showFilter = false
-        }" 
-        @clear="()=>{ initFilters() }" 
-        @close="()=>{ showFilter = false }"
+        @apply="handleApplyFilters" 
+        @clear="handleClearFilters" 
+        @close="handleCloseFilter"
       />
     </div>
 
