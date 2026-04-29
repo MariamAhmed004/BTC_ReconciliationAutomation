@@ -42,6 +42,20 @@ public partial class system_configuration
     [Unicode(false)]
     public string? RUN_TIME { get; set; }
 
+    [StringLength(100)]
+    [Unicode(false)]
+    public string? ADDED_BY { get; set; }
+
+    [Column(TypeName = "NUMBER")]
+    public decimal? DAYS_TO_DELETE_AUDITLOGS { get; set; }
+
+    [StringLength(255)]
+    [Unicode(false)]
+    public string? DEFAULT_FILE_PATH { get; set; }
+
+    [Unicode(false)]
+    public string? IGNORE_CONDITIONS { get; set; }
+
     [InverseProperty("CONFIG")]
     public virtual ICollection<reconciliation_run> reconciliation_runs { get; set; } = new List<reconciliation_run>();
 }

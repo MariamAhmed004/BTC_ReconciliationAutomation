@@ -25,9 +25,6 @@
             <router-link class="nav-link" to="/management">Management &amp; Configuration</router-link>
           </li>
           <li class="nav-item px-2">
-            <router-link class="nav-link" to="/alerts">Alerts</router-link>
-          </li>
-          <li class="nav-item px-2">
             <router-link class="nav-link" to="/files">Files Repository</router-link>
           </li>
           <li class="nav-item px-2">

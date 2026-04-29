@@ -56,7 +56,7 @@ public partial class OracleDbContext : DbContext
 
         modelBuilder.Entity<SIEBEL_TABLE>(entity =>
         {
-            entity.HasKey(e => e.BNET_REF).HasName("SYS_C008232");
+            entity.HasKey(e => e.BNET_REF).HasName("SYS_C008245");
         });
 
         modelBuilder.Entity<delivery_method>(entity =>
@@ -66,14 +66,14 @@ public partial class OracleDbContext : DbContext
 
         modelBuilder.Entity<file_type>(entity =>
         {
-            entity.HasKey(e => e.FILE_TYPE_ID).HasName("SYS_C008273");
+            entity.HasKey(e => e.FILE_TYPE_ID).HasName("SYS_C008265");
 
             entity.Property(e => e.FILE_TYPE_ID).ValueGeneratedOnAdd();
         });
 
         modelBuilder.Entity<generated_file>(entity =>
         {
-            entity.Property(e => e.FILE_TYPE_ID).HasDefaultValueSql("5 ");
+            entity.Property(e => e.FILE_TYPE_ID).HasDefaultValueSql("5\n   ");
 
             entity.HasOne(d => d.FILE_TYPE).WithMany(p => p.generated_files)
                 .OnDelete(DeleteBehavior.ClientSetNull)
@@ -88,9 +88,9 @@ public partial class OracleDbContext : DbContext
         {
             entity.HasKey(e => e.RUN_ID).HasName("PK_reconciliation_log");
 
-            entity.Property(e => e.DELIVERY_METHOD_ID).HasDefaultValueSql("1 ");
-            entity.Property(e => e.RUN_STATUS_ID).HasDefaultValueSql("1 ");
-            entity.Property(e => e.TRIGGERED_BY).HasDefaultValueSql("'Automatically' ");
+            entity.Property(e => e.DELIVERY_METHOD_ID).HasDefaultValueSql("1");
+            entity.Property(e => e.RUN_STATUS_ID).HasDefaultValueSql("1\n   ");
+            entity.Property(e => e.TRIGGERED_BY).HasDefaultValueSql("'Automatically'");
 
             entity.HasOne(d => d.CONFIG).WithMany(p => p.reconciliation_runs).HasConstraintName("FK_reconciliati_system_conf_01");
 
@@ -109,11 +109,11 @@ public partial class OracleDbContext : DbContext
         {
             entity.HasKey(e => e.SUMMARY_ID).HasName("PK_reconciliation_01");
 
-            entity.Property(e => e.MISMATCH_COUNT).HasDefaultValueSql("0 ");
-            entity.Property(e => e.MISSING_IN_BILLING_COUNT).HasDefaultValueSql("0 ");
-            entity.Property(e => e.MISSING_IN_CUSTOMER_COUNT).HasDefaultValueSql("0 ");
-            entity.Property(e => e.TOTAL_DISCREPANCIES).HasDefaultValueSql("0 ");
-            entity.Property(e => e.TOTAL_RECORDS_PROCESSED).HasDefaultValueSql("0 ");
+            entity.Property(e => e.MISMATCH_COUNT).HasDefaultValueSql("0");
+            entity.Property(e => e.MISSING_IN_BILLING_COUNT).HasDefaultValueSql("0");
+            entity.Property(e => e.MISSING_IN_CUSTOMER_COUNT).HasDefaultValueSql("0");
+            entity.Property(e => e.TOTAL_DISCREPANCIES).HasDefaultValueSql("0");
+            entity.Property(e => e.TOTAL_RECORDS_PROCESSED).HasDefaultValueSql("0");
 
             entity.HasOne(d => d.RUN).WithMany(p => p.reconciliation_summaries)
                 .OnDelete(DeleteBehavior.ClientSetNull)
@@ -122,7 +122,7 @@ public partial class OracleDbContext : DbContext
 
         modelBuilder.Entity<run_status>(entity =>
         {
-            entity.HasKey(e => e.RUN_STATUS_ID).HasName("SYS_C008294");
+            entity.HasKey(e => e.RUN_STATUS_ID).HasName("SYS_C008231");
 
             entity.Property(e => e.RUN_STATUS_ID).ValueGeneratedOnAdd();
         });
@@ -131,9 +131,9 @@ public partial class OracleDbContext : DbContext
         {
             entity.HasKey(e => e.CONFIG_ID).HasName("PK_system_configur_01");
 
-            entity.Property(e => e.FREQUENCY).HasDefaultValueSql("'MONTHLY' ");
+            entity.Property(e => e.FREQUENCY).HasDefaultValueSql("'MONTHLY'");
             entity.Property(e => e.IS_ACTIVE)
-                .HasDefaultValueSql("'Y' ")
+                .HasDefaultValueSql("'Y'")
                 .IsFixedLength();
         });
 

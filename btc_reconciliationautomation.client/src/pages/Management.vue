@@ -1,10 +1,12 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue'
+import { useRouter } from 'vue-router'
 import PageHeader from '../components/common/PageHeader.vue'
 import BaseCard from '../components/common/BaseCard.vue'
 import BaseTable from '../components/common/BaseTable.vue'
 import BaseModal from '../components/common/BaseModal.vue'
 
+const router = useRouter()
 const title = 'Configuration and manual trigger'
 
 const configurations = ref([])
@@ -162,6 +164,10 @@ function closeModal() {
   showModal.value = false
 }
 
+function navigateToReconfigure() {
+  router.push('/reconfigure')
+}
+
 onMounted(() => {
   fetchConfigurations()
 })
@@ -181,31 +187,45 @@ onMounted(() => {
     </div>
 
     <div class="row mt-4">
-      <div class="col-md-4">
+      <div class="col-md-7">
         <BaseCard title="Current Configurations">
-          <div v-if="loading" class="text-center text-muted small">
+          <div v-if="loading" class="text-center text-muted">
             Loading...
           </div>
-          <div v-else-if="activeConfiguration" class="small">
-            <p class="mb-2">
-              <strong>Emails to receive automated emails:</strong><br />
-              {{ activeConfiguration.email_recipients }}
+          <div v-else-if="activeConfiguration" class="config-details">
+            <p class="mb-3">
+              <span class="text-muted">Emails are sent to:</span><br />
+              <strong>{{ activeConfiguration.email_recipients }}</strong>
             </p>
-            <p class="mb-2">
-              <strong>Reconciliation scheduled to run:</strong><br />
-              {{ formatSchedule(activeConfiguration.schedule_expression) }}
+            <p class="mb-3">
+              <span class="text-muted">Scheduled for -- of every</span><br />
+              <strong>{{ formatSchedule(activeConfiguration.schedule_expression) }}</strong>
             </p>
-            <p class="mb-0 text-muted fst-italic">
-              Configuration ID: {{ activeConfiguration.config_id }}
+            <p class="mb-0">
+              <span class="text-muted">System Logs Cleared on:</span><br />
+              <strong>xx days</strong>
             </p>
           </div>
-          <div v-else class="text-center text-muted small">
+          <div v-else class="text-center text-muted py-4">
             No active configuration found
           </div>
         </BaseCard>
+      </div>
 
-        <BaseCard title="Manual Trigger" class="mt-3">
-          <div class="w-100 d-flex align-items-center justify-content-center">
+      <div class="col-md-5">
+        <BaseCard title="Change Configurations" :bodyClass="'action-card-body'">
+          <div class="w-100 h-100 d-flex align-items-center justify-content-center">
+            <button 
+              class="btn btn-lg btn-outline-secondary"
+              @click="navigateToReconfigure"
+            >
+              Reconfigure
+            </button>
+          </div>
+        </BaseCard>
+
+        <BaseCard title="Manual Trigger" class="mt-3" :bodyClass="'action-card-body'">
+          <div class="w-100 h-100 d-flex align-items-center justify-content-center">
             <button 
               class="btn btn-lg btn-outline-primary" 
               @click="runReconciliation"
@@ -215,12 +235,6 @@ onMounted(() => {
               {{ isRunning ? 'Running...' : 'Run Reconciliation' }}
             </button>
           </div>
-        </BaseCard>
-      </div>
-
-      <div class="col-md-8">
-        <BaseCard title="Add New Configuration" :bodyClass="'add-config-body'">
-          <div class="w-100 h-100 d-flex align-items-center justify-content-center text-muted">Placeholder form for adding new configuration</div>
         </BaseCard>
       </div>
     </div>
@@ -256,8 +270,18 @@ onMounted(() => {
 </template>
 
 <style scoped>
-.add-config-body {
-  min-height: 320px;
-  background: #e9e9e9;
+.config-details {
+  font-size: 0.95rem;
+}
+
+.config-details .text-muted {
+  font-size: 0.85rem;
+}
+
+.action-card-body {
+  min-height: 120px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 </style>
