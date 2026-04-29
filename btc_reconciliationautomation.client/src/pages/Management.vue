@@ -25,8 +25,7 @@ const columns = [
   { key: 'is_active', title: 'Status', width: '100px', render: 'status' },
   { key: 'effective_from', title: 'Effective From', render: 'timestamp' },
   { key: 'effective_to', title: 'Effective To', render: 'timestamp' },
-  { key: 'email_recipients', title: 'Email Recipients' },
-  { key: 'schedule_expression', title: 'Schedule' }
+  { key: 'added_by', title: 'Added By' }
 ]
 
 const showSearch = computed(() => configurations.value.length > 10)
@@ -97,8 +96,7 @@ async function fetchConfigurations() {
         is_active: config.iS_ACTIVE,
         effective_from: config.effectivE_FROM ? new Date(config.effectivE_FROM).toLocaleString() : 'N/A',
         effective_to: config.effectivE_TO ? new Date(config.effectivE_TO).toLocaleString() : 'N/A',
-        email_recipients: config.emaiL_RECIPIENTS || 'N/A',
-        schedule_expression: config.schedulE_EXPRESSION || 'N/A',
+        added_by: config.addeD_BY || 'N/A',
         created_at: config.createD_AT ? new Date(config.createD_AT).toLocaleString() : 'N/A'
       }))
     } else {
@@ -240,14 +238,15 @@ onMounted(() => {
     </div>
 
     <div class="mt-5">
-      <h4 class="mb-3">Previously Effective Configurations</h4>
+      <h4 class="mb-3">Previously Effective Configurations <small class="text-muted fs-6 fw-normal">— click a row to view full details</small></h4>
       <BaseTable
         v-if="!loading && configurations.length > 0"
         :columns="columns"
         :items="configurations"
         :showSearch="showSearch"
         :showPagination="showPagination"
-        :rowClickable="false"
+        :rowClickable="true"
+        @row-click="(item) => $router.push({ name: 'ConfigurationDetails', params: { id: item.config_id } })"
       />
       <div v-else-if="!loading" class="alert alert-warning">
         No configurations available

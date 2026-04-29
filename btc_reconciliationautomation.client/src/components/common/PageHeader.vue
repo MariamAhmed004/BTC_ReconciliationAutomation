@@ -25,7 +25,7 @@ const props = defineProps({
 
     <hr />
 
-    <div class="text-center mt-3">
+    <div class="text-start mt-3">
       <div class="subtitle">{{ subtitle }}</div>
       <div class="instruction">{{ instruction }}</div>
     </div>

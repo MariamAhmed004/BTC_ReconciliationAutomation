@@ -1,11 +1,15 @@
 <script setup>
 import NavBar from './components/common/NavBar.vue'
+import AppFooter from './components/common/AppFooter.vue'
 </script>
 
 <template>
-  <div>
+  <div class="d-flex flex-column min-vh-100">
     <NavBar v-if="!$route.meta.hideNav" />
-    <router-view />
+    <div class="flex-grow-1">
+      <router-view />
+    </div>
+    <AppFooter />
   </div>
 </template>
 

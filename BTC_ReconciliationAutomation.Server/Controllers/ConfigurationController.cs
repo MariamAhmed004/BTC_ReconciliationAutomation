@@ -16,12 +16,21 @@ namespace BTC_ReconciliationAutomation.Server.Controllers
             _repo = repo;
         }
 
-        // Get current configuration values
+        // Get all configurations
         [HttpGet]
         public async Task<IActionResult> GetAll()
         {
             var all = await _repo.GetAllAsync();
             return Ok(all);
+        }
+
+        // Get a single configuration by id
+        [HttpGet("{id}")]
+        public async Task<IActionResult> GetById([FromRoute] int id)
+        {
+            var config = await _repo.GetByIdAsync(id);
+            if (config == null) return NotFound();
+            return Ok(config);
         }
 
         // Update a configuration value

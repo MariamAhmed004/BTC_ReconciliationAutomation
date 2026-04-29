@@ -10,6 +10,7 @@ const FilesRepository = () => import('@/pages/FilesRepository.vue')
 const Logs = () => import('@/pages/Logs.vue')
 const SignUp = () => import('@/pages/SignUp.vue')
 const LogDetails = () => import('@/pages/LogDetails.vue')
+const ConfigurationDetails = () => import('@/pages/ConfigurationDetails.vue')
 
 const routes = [
   { path: '/', name: 'Dashboard', component: Dashboard },
@@ -17,6 +18,7 @@ const routes = [
   { path: '/login', name: 'Login', component: Login, meta: { hideNav: true } },
   { path: '/signup', name: 'SignUp', component: SignUp, meta: { hideNav: true } },
   { path: '/log/:id', name: 'LogDetails', component: LogDetails },
+  { path: '/configuration/:id', name: 'ConfigurationDetails', component: ConfigurationDetails },
   { path: '/reconciliation', name: 'Reconciliation', component: Reconciliation },
   { path: '/management', name: 'Management', component: Management },
   { path: '/reconfigure', name: 'Reconfigure', component: Reconfigure },

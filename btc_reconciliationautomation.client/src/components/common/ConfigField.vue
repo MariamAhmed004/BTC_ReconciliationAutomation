@@ -1,5 +1,6 @@
 <script setup>
 import { ref } from 'vue'
+import BaseModal from './BaseModal.vue'
 
 const props = defineProps({
   label: { type: String, required: true },
@@ -12,7 +13,7 @@ const props = defineProps({
 
 const emit = defineEmits(['update:modelValue'])
 
-const showTooltip = ref(false)
+const showInfoModal = ref(false)
 
 function updateValue(event) {
   emit('update:modelValue', event.target.value)
@@ -20,7 +21,8 @@ function updateValue(event) {
 </script>
 
 <template>
-  <div class="config-field-wrapper mb-3">
+  <div class="config-field-wrapper mb-4">
+    <label class="field-label mb-1">{{ label }}</label>
     <div class="d-flex align-items-center gap-2">
       <div class="field-icon">
         <i :class="`bi ${icon}`"></i>
@@ -34,28 +36,37 @@ function updateValue(event) {
           class="form-control"
         />
       </div>
-      <div class="field-info position-relative">
+      <div class="field-info">
         <button
           type="button"
           class="btn btn-link p-0 info-btn"
-          @mouseenter="showTooltip = true"
-          @mouseleave="showTooltip = false"
-          @focus="showTooltip = true"
-          @blur="showTooltip = false"
+          @click="showInfoModal = true"
+          :title="`About ${label}`"
         >
           <i class="bi bi-info-circle"></i>
         </button>
-        <div v-if="showTooltip && infoText" class="info-tooltip">
-          {{ infoText }}
-        </div>
       </div>
     </div>
+
+    <BaseModal
+      :show="showInfoModal"
+      :title="label"
+      :message="infoText"
+      @close="showInfoModal = false"
+    />
   </div>
 </template>
 
 <style scoped>
 .config-field-wrapper {
   max-width: 100%;
+}
+
+.field-label {
+  display: block;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: #495057;
 }
 
 .field-icon {
@@ -78,15 +89,16 @@ function updateValue(event) {
 .field-input .form-control {
   height: 48px;
   background: #e9ecef;
-  border: 1px solid #dee2e6;
+  border: none;
   font-size: 0.95rem;
   color: #495057;
 }
 
 .field-input .form-control:focus {
   background: #fff;
-  border-color: #0d6efd;
-  box-shadow: 0 0 0 0.2rem rgba(13, 110, 253, 0.15);
+  border: none;
+  outline: none;
+  box-shadow: none;
 }
 
 .field-info {
@@ -108,30 +120,5 @@ function updateValue(event) {
 .info-btn:hover,
 .info-btn:focus {
   color: #0d6efd;
-}
-
-.info-tooltip {
-  position: absolute;
-  right: 0;
-  top: 100%;
-  margin-top: 8px;
-  width: 250px;
-  padding: 12px;
-  background: #343a40;
-  color: #fff;
-  border-radius: 6px;
-  font-size: 0.85rem;
-  line-height: 1.4;
-  z-index: 1000;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-}
-
-.info-tooltip::before {
-  content: '';
-  position: absolute;
-  bottom: 100%;
-  right: 8px;
-  border: 6px solid transparent;
-  border-bottom-color: #343a40;
 }
 </style>
