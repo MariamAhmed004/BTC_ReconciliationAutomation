@@ -10,6 +10,7 @@ const title = 'Configuration and manual trigger'
 const configurations = ref([])
 const loading = ref(false)
 const error = ref(null)
+const latestActiveConfig = ref(null)
 
 const showModal = ref(false)
 const modalTitle = ref('')
@@ -32,6 +33,55 @@ const showPagination = computed(() => configurations.value.length > 10)
 const modalButtons = computed(() => [
   { text: 'Close', variant: 'secondary', action: 'close' }
 ])
+
+// Extract the latest active configuration
+const activeConfiguration = computed(() => {
+  const activeConfigs = configurations.value.filter(c => c.is_active === 'Y')
+  if (activeConfigs.length === 0) return null
+
+  // Sort by created_at descending and get the latest one
+  return activeConfigs.sort((a, b) => {
+    const dateA = new Date(a.created_at)
+    const dateB = new Date(b.created_at)
+    return dateB - dateA
+  })[0]
+})
+
+// Format schedule expression into readable text
+function formatSchedule(scheduleExpression) {
+  if (!scheduleExpression || scheduleExpression === 'N/A') {
+    return 'No schedule configured'
+  }
+
+  // Parse cron expression or custom schedule format
+  // Example: "0 9 * * 1,2,3,4,5" -> "09:00 daily on Mon,Tue,Wed,Thu,Fri"
+  // This is a basic parser - adjust based on your actual schedule format
+  const parts = scheduleExpression.split(' ')
+
+  if (parts.length >= 5) {
+    const minute = parts[0]
+    const hour = parts[1]
+    const dayOfMonth = parts[2]
+    const month = parts[3]
+    const dayOfWeek = parts[4]
+
+    const time = `${hour.padStart(2, '0')}:${minute.padStart(2, '0')}`
+
+    let frequency = 'daily'
+    let days = ''
+
+    if (dayOfWeek !== '*') {
+      const dayMap = { '0': 'Sun', '1': 'Mon', '2': 'Tue', '3': 'Wed', '4': 'Thu', '5': 'Fri', '6': 'Sat' }
+      const dayNumbers = dayOfWeek.split(',')
+      days = dayNumbers.map(d => dayMap[d] || d).join(', ')
+      frequency = 'weekly'
+    }
+
+    return `${time} ${frequency}${days ? ' on ' + days : ''}`
+  }
+
+  return scheduleExpression
+}
 
 async function fetchConfigurations() {
   loading.value = true
@@ -136,13 +186,21 @@ onMounted(() => {
           <div v-if="loading" class="text-center text-muted small">
             Loading...
           </div>
-          <ul v-else-if="configurations.length > 0" class="list-unstyled mb-0 small text-muted">
-            <li v-for="c in configurations" :key="c.config_id">
-              Configuration {{ c.config_id }} - {{ c.is_active === 'Y' ? 'Active' : 'Inactive' }}
-            </li>
-          </ul>
+          <div v-else-if="activeConfiguration" class="small">
+            <p class="mb-2">
+              <strong>Emails to receive automated emails:</strong><br />
+              {{ activeConfiguration.email_recipients }}
+            </p>
+            <p class="mb-2">
+              <strong>Reconciliation scheduled to run:</strong><br />
+              {{ formatSchedule(activeConfiguration.schedule_expression) }}
+            </p>
+            <p class="mb-0 text-muted fst-italic">
+              Configuration ID: {{ activeConfiguration.config_id }}
+            </p>
+          </div>
           <div v-else class="text-center text-muted small">
-            No configurations found
+            No active configuration found
           </div>
         </BaseCard>
 
