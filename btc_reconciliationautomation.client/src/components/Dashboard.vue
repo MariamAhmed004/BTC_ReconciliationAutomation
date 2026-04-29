@@ -179,7 +179,7 @@ const pieChartOptions = computed(() => {
       height: 350
     },
     title: {
-      text: 'Discrepancy Types Distribution'
+      text: 'Overall Discrepancy Types Distribution'
     },
     plotOptions: {
       pie: {
@@ -434,7 +434,7 @@ onMounted(() => {
       <div class="row mt-4">
         <div class="col-12">
           <BaseCard title="Last Execution Info" headerClass="bg-light text-dark border">
-            <div class="text-center">
+            <div class="text-start">
               <div><strong>Date:</strong> {{ formatDate(stats.lastExecutionDate) }}</div>
               <div><strong>Status:</strong> <span :class="getStatusClass()">{{ getStatusDisplay() }}</span></div>
               <div v-if="stats.lastExecutionError"><strong>Error:</strong> {{ stats.lastExecutionError }}</div>

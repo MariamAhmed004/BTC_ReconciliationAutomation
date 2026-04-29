@@ -49,39 +49,27 @@ const activeConfiguration = computed(() => {
 })
 
 // Format schedule expression into readable text
-function formatSchedule(scheduleExpression) {
-  if (!scheduleExpression || scheduleExpression === 'N/A') {
+function formatSchedule(config) {
+  if (!config) return 'No schedule configured'
+
+  const frequency = config.frequency || 'N/A'
+  const runTime = config.run_time || 'N/A'
+  const dayOfMonth = config.day_of_month || 'N/A'
+
+  if (frequency === 'N/A' || runTime === 'N/A') {
     return 'No schedule configured'
   }
 
-  // Parse cron expression or custom schedule format
-  // Example: "0 9 * * 1,2,3,4,5" -> "09:00 daily on Mon,Tue,Wed,Thu,Fri"
-  // This is a basic parser - adjust based on your actual schedule format
-  const parts = scheduleExpression.split(' ')
+  // Build a readable sentence
+  let schedule = `Runs ${frequency.toLowerCase()}`
 
-  if (parts.length >= 5) {
-    const minute = parts[0]
-    const hour = parts[1]
-    const dayOfMonth = parts[2]
-    const month = parts[3]
-    const dayOfWeek = parts[4]
-
-    const time = `${hour.padStart(2, '0')}:${minute.padStart(2, '0')}`
-
-    let frequency = 'daily'
-    let days = ''
-
-    if (dayOfWeek !== '*') {
-      const dayMap = { '0': 'Sun', '1': 'Mon', '2': 'Tue', '3': 'Wed', '4': 'Thu', '5': 'Fri', '6': 'Sat' }
-      const dayNumbers = dayOfWeek.split(',')
-      days = dayNumbers.map(d => dayMap[d] || d).join(', ')
-      frequency = 'weekly'
-    }
-
-    return `${time} ${frequency}${days ? ' on ' + days : ''}`
+  if (dayOfMonth !== 'N/A' && frequency.toLowerCase() === 'monthly') {
+    schedule += ` on day ${dayOfMonth}`
   }
 
-  return scheduleExpression
+  schedule += ` at ${runTime}`
+
+  return schedule
 }
 
 async function fetchConfigurations() {
@@ -97,7 +85,14 @@ async function fetchConfigurations() {
         effective_from: config.effectivE_FROM ? new Date(config.effectivE_FROM).toLocaleString() : 'N/A',
         effective_to: config.effectivE_TO ? new Date(config.effectivE_TO).toLocaleString() : 'N/A',
         added_by: config.addeD_BY || 'N/A',
-        created_at: config.createD_AT ? new Date(config.createD_AT).toLocaleString() : 'N/A'
+        created_at: config.createD_AT ? new Date(config.createD_AT).toLocaleString() : 'N/A',
+        // Additional fields for the card display
+        email_recipients: config.emaiL_RECIPIENTS || 'N/A',
+        frequency: config.frequencY || 'N/A',
+        run_time: config.ruN_TIME || 'N/A',
+        day_of_month: config.daY_OF_MONTH || 'N/A',
+        default_file_path: config.defaulT_FILE_PATH || 'N/A',
+        days_to_delete_auditlogs: config.dayS_TO_DELETE_AUDITLOGS ?? 'N/A'
       }))
     } else {
       error.value = `Failed to fetch configurations: ${response.statusText}`
@@ -186,23 +181,54 @@ onMounted(() => {
 
     <div class="row mt-4">
       <div class="col-md-7">
-        <BaseCard title="Current Configurations">
+        <BaseCard title="Current Active Configuration">
           <div v-if="loading" class="text-center text-muted">
             Loading...
           </div>
           <div v-else-if="activeConfiguration" class="config-details">
-            <p class="mb-3">
-              <span class="text-muted">Emails are sent to:</span><br />
-              <strong>{{ activeConfiguration.email_recipients }}</strong>
-            </p>
-            <p class="mb-3">
-              <span class="text-muted">Scheduled for -- of every</span><br />
-              <strong>{{ formatSchedule(activeConfiguration.schedule_expression) }}</strong>
-            </p>
-            <p class="mb-0">
-              <span class="text-muted">System Logs Cleared on:</span><br />
-              <strong>xx days</strong>
-            </p>
+            <!-- Configuration ID -->
+            <div class="config-item">
+              <span class="config-label">Configuration ID:</span>
+              <span class="config-value">#{{ activeConfiguration.config_id }}</span>
+            </div>
+
+            <!-- Scheduling -->
+            <div class="config-item">
+              <span class="config-label">Scheduling:</span>
+              <span class="config-value">{{ formatSchedule(activeConfiguration) }}</span>
+            </div>
+
+            <!-- Email Recipients -->
+            <div class="config-item">
+              <span class="config-label">Email Delivery:</span>
+              <span class="config-value">Reports are sent to {{ activeConfiguration.email_recipients }}</span>
+            </div>
+
+            <!-- Default File Path -->
+            <div class="config-item">
+              <span class="config-label">Default File Path:</span>
+              <span class="config-value">{{ activeConfiguration.default_file_path }}</span>
+            </div>
+
+            <!-- Log Retention -->
+            <div class="config-item">
+              <span class="config-label">Log Retention:</span>
+              <span class="config-value">
+                Audit logs are deleted after {{ activeConfiguration.days_to_delete_auditlogs }} days of creation
+              </span>
+            </div>
+
+            <!-- Effective From -->
+            <div class="config-item">
+              <span class="config-label">Effective From:</span>
+              <span class="config-value">{{ activeConfiguration.effective_from }}</span>
+            </div>
+
+            <!-- Added By -->
+            <div class="config-item">
+              <span class="config-label">Added By:</span>
+              <span class="config-value">{{ activeConfiguration.added_by }}</span>
+            </div>
           </div>
           <div v-else class="text-center text-muted py-4">
             No active configuration found
@@ -271,6 +297,38 @@ onMounted(() => {
 <style scoped>
 .config-details {
   font-size: 0.95rem;
+}
+
+.config-item {
+  padding: 0.75rem 0;
+  border-bottom: 1px solid #e9ecef;
+  display: flex;
+  flex-direction: row;
+  gap: 0.5rem;
+  align-items: flex-start;
+}
+
+.config-item:last-child {
+  border-bottom: none;
+}
+
+.config-label {
+  font-size: 0.85rem;
+  color: #6c757d;
+  font-weight: 600;
+  min-width: 140px;
+  flex-shrink: 0;
+}
+
+.config-value {
+  font-size: 0.9rem;
+  color: #212529;
+  font-weight: 400;
+  word-wrap: break-word;
+  word-break: break-word;
+  overflow-wrap: break-word;
+  flex: 1;
+  min-width: 0;
 }
 
 .config-details .text-muted {

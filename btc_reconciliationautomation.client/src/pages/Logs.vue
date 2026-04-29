@@ -1,9 +1,9 @@
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import BaseTable from '../components/common/BaseTable.vue'
 import BaseFilter from '../components/common/BaseFilter.vue'
-import { ref as ref2 } from 'vue'
+import BaseModal from '../components/common/BaseModal.vue'
 
 const columns = [
   { key: 'id', title: 'ID', width: '80px' },
@@ -14,12 +14,13 @@ const columns = [
 ]
 
 const items = ref([])
-const showDeleteModal = ref2(false)
-const deleteMode = ref2('range') // 'range' or 'all'
-const deleteFrom = ref2('')
-const deleteTo = ref2('')
-const deleteDays = ref2(30)
-const confirmDeleting = ref2(false)
+const showDeleteModal = ref(false)
+const deleteMode = ref('range') // 'range' or 'all'
+const rangeMode = ref('days') // 'days' or 'dates'
+const deleteFrom = ref('')
+const deleteTo = ref('')
+const deleteDays = ref(30)
+const confirmDeleting = ref(false)
 
 function formatDate(d) {
   if (!d) return ''
@@ -42,7 +43,7 @@ async function loadLogs() {
     // API model uses uppercase properties; map to table shape
     items.value = (data || []).map(l => {
       // Resolve log level name from included navigation when available
-      const levelName = l.LOG_LEVEL?.loG_LEVEL1 ?? l.LOG_LEVEL?.LOG_LEVEL1 ?? l.loG_LEVEL?.LOG_LEVEL_NAME ?? l.loG_LEVEL?.log_level_name ?? (l.LOG_LEVEL_ID ?? l.loG_LEVEL_ID ?? '')
+      const levelName = l.loG_LEVEL?.loG_LEVEL1 ?? l.LOG_LEVEL?.LOG_LEVEL1 ?? l.loG_LEVEL?.LOG_LEVEL_NAME ?? l.loG_LEVEL?.log_level_name ?? (l.LOG_LEVEL_ID ?? l.loG_LEVEL_ID ?? '')
       // Resolve related run info (id and triggeredBy) if included
       const runObj = l.RUN ?? l.run ?? l.Run ?? null
       const runId = runObj?.RUN_ID ?? runObj?.ruN_ID ?? runObj?.id ?? null
@@ -86,9 +87,9 @@ function onRowClick(item) {
 async function performDeleteRange() {
   // build payload
   const payload = {}
-  if (deleteDays && deleteMode.value === 'range' && (!deleteFrom.value && !deleteTo.value)) {
-    payload.days = Number(deleteDays)
-  } else {
+  if (rangeMode.value === 'days' && deleteDays.value) {
+    payload.days = Number(deleteDays.value)
+  } else if (rangeMode.value === 'dates') {
     if (deleteFrom.value) payload.from = new Date(deleteFrom.value).toISOString()
     if (deleteTo.value) payload.to = new Date(deleteTo.value).toISOString()
   }
@@ -100,6 +101,7 @@ async function performDeleteRange() {
     if (!res.ok) throw new Error('Delete request failed')
     const data = await res.json()
     alert(`Deleted ${data.deleted} log records`)
+    showDeleteModal.value = false
     await loadLogs()
   } catch (err) {
     console.error('Delete range failed', err)
@@ -115,10 +117,32 @@ async function performDeleteAll() {
     if (!res.ok) throw new Error('Delete all request failed')
     const data = await res.json()
     alert(`Deleted ${data.deleted} log records`)
+    showDeleteModal.value = false
     await loadLogs()
   } catch (err) {
     console.error('Delete all failed', err)
     alert('Failed to delete logs')
+  }
+}
+
+const modalButtons = computed(() => {
+  if (deleteMode.value === 'all') {
+    return [
+      { text: 'Cancel', variant: 'secondary', action: 'close' },
+      { text: 'Delete All', variant: 'danger', action: 'deleteAll' }
+    ]
+  }
+  return [
+    { text: 'Cancel', variant: 'secondary', action: 'close' },
+    { text: 'Delete Selected', variant: 'danger', action: 'deleteRange' }
+  ]
+})
+
+function handleModalAction(action) {
+  if (action === 'deleteAll') {
+    performDeleteAll()
+  } else if (action === 'deleteRange') {
+    performDeleteRange()
   }
 }
 </script>
@@ -127,52 +151,90 @@ async function performDeleteAll() {
   <div class="container pt-4">
     <h3>Logs</h3>
     <div class="mb-3 d-flex justify-content-end">
-      <button class="btn btn-sm btn-danger" @click="showDeleteModal = true">Delete Logs</button>
+      <button class="btn btn-sm btn-danger" @click="showDeleteModal = true">Request Log Clearance</button>
     </div>
 
-    <div v-if="showDeleteModal" class="modal-backdrop d-flex align-items-center justify-content-center">
-      <div class="modal-dialog">
-        <div class="modal-content">
-          <div class="modal-header">
-            <h5 class="modal-title">Delete Logs</h5>
-            <button type="button" class="btn-close" @click="showDeleteModal = false"></button>
-          </div>
-          <div class="modal-body">
-            <div class="mb-3">
-              <label class="form-label">Mode</label>
-              <select v-model="deleteMode" class="form-select">
-                <option value="range">Delete by period / days</option>
-                <option value="all">Delete all records</option>
-              </select>
-            </div>
+    <BaseModal
+      :show="showDeleteModal"
+      title="Delete Logs"
+      :buttons="modalButtons"
+      size="lg"
+      @close="showDeleteModal = false"
+      @action="handleModalAction"
+    >
+      <div class="delete-modal-content">
+        <p class="text-muted small mb-3">
+          Choose how you want to delete log records. You can either delete all logs or delete logs by specifying a time period.
+        </p>
 
-            <div v-if="deleteMode === 'range'">
-              <div class="mb-2">
-                <label class="form-label">From (date)</label>
-                <input type="date" v-model="deleteFrom" class="form-control" />
-              </div>
-              <div class="mb-2">
-                <label class="form-label">To (date)</label>
-                <input type="date" v-model="deleteTo" class="form-control" />
-              </div>
-              <div class="mb-2">
-                <label class="form-label">Or delete records older than (days)</label>
-                <input type="number" v-model.number="deleteDays" class="form-control" min="1" />
-              </div>
-            </div>
+        <div class="mb-3">
+          <label class="form-label fw-semibold">Deletion Mode</label>
+          <select v-model="deleteMode" class="form-select">
+            <option value="range">Delete by time period</option>
+            <option value="all">Delete all records</option>
+          </select>
+        </div>
 
-            <div v-if="deleteMode === 'all'" class="text-danger">
-              This will delete all log records. A confirmation will be required.
+        <div v-if="deleteMode === 'range'" class="range-options">
+          <div class="mb-3">
+            <label class="form-label fw-semibold">Select Period Type</label>
+            <div class="form-check">
+              <input 
+                class="form-check-input" 
+                type="radio" 
+                name="rangeMode" 
+                id="rangeModeDate" 
+                value="dates"
+                v-model="rangeMode"
+              />
+              <label class="form-check-label" for="rangeModeDate">
+                Specify date range
+              </label>
+            </div>
+            <div class="form-check">
+              <input 
+                class="form-check-input" 
+                type="radio" 
+                name="rangeMode" 
+                id="rangeModeDays" 
+                value="days"
+                v-model="rangeMode"
+              />
+              <label class="form-check-label" for="rangeModeDays">
+                Delete logs older than X days
+              </label>
             </div>
           </div>
-          <div class="modal-footer">
-            <button class="btn btn-secondary" @click="showDeleteModal = false">Cancel</button>
-            <button v-if="deleteMode === 'range'" class="btn btn-danger" @click="performDeleteRange">Delete Selected</button>
-            <button v-else class="btn btn-danger" @click="performDeleteAll">Delete All</button>
+
+          <div v-if="rangeMode === 'dates'" class="date-inputs">
+            <div class="mb-2">
+              <label class="form-label">From (date)</label>
+              <input type="date" v-model="deleteFrom" class="form-control" />
+            </div>
+            <div class="mb-2">
+              <label class="form-label">To (date)</label>
+              <input type="date" v-model="deleteTo" class="form-control" />
+            </div>
+          </div>
+
+          <div v-if="rangeMode === 'days'" class="days-input">
+            <label class="form-label">Delete records older than (days)</label>
+            <input 
+              type="number" 
+              v-model.number="deleteDays" 
+              class="form-control" 
+              min="1" 
+              placeholder="Enter number of days"
+            />
           </div>
         </div>
+
+        <div v-if="deleteMode === 'all'" class="alert alert-danger" role="alert">
+          <i class="bi bi-exclamation-triangle-fill me-2"></i>
+          <strong>Warning:</strong> This will permanently delete all log records from the database. This action cannot be undone.
+        </div>
       </div>
-    </div>
+    </BaseModal>
 
     <BaseTable
       :columns="columns"
@@ -184,15 +246,63 @@ async function performDeleteAll() {
       :rowClickable="true"
       @row-click="onRowClick"
     >
+      <template #level="{ item }">
+        <span 
+          v-if="item.level" 
+          :class="[
+            'badge text-white',
+            item.level.toUpperCase() === 'ERROR' ? 'bg-danger' :
+            item.level.toUpperCase() === 'WARNING' ? 'bg-warning' :
+            item.level.toUpperCase() === 'INFO' ? 'bg-info' :
+            'bg-secondary'
+          ]"
+        >
+          {{ item.level }}
+        </span>
+        <span v-else class="text-muted">-</span>
+      </template>
+
       <template #run="{ item }">
-        <button class="btn btn-sm btn-outline-primary" :disabled="!item.runId" @click.stop="router.push({ name: 'LogDetails', params: { id: item.runId } })">
-          <i class="bi bi-arrow-right-circle"></i>
-          <span v-if="item.runTriggeredBy" class="ms-1 small">{{ item.runTriggeredBy }}</span>
-          <span v-else class="ms-1 small">View</span>
+        <button 
+          v-if="item.runId" 
+          class="btn btn-sm btn-outline-primary" 
+          @click.stop="router.push({ name: 'LogDetails', params: { id: item.runId } })"
+        >
+          <i class="bi bi-arrow-right-circle me-1"></i>
+          Run Details
         </button>
+        <span v-else class="text-muted small">N/A</span>
       </template>
     </BaseTable>
   </div>
 </template>
 
-<style scoped></style>
+<style scoped>
+.delete-modal-content {
+  max-height: 60vh;
+  overflow-y: auto;
+}
+
+.range-options {
+  background-color: #f8f9fa;
+  padding: 1rem;
+  border-radius: 0.375rem;
+  border: 1px solid #dee2e6;
+}
+
+.date-inputs,
+.days-input {
+  margin-top: 1rem;
+  padding-top: 1rem;
+  border-top: 1px solid #dee2e6;
+}
+
+.form-check {
+  padding: 0.5rem 0;
+}
+
+.form-check-input:checked {
+  background-color: #0d6efd;
+  border-color: #0d6efd;
+}
+</style>

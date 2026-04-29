@@ -204,16 +204,21 @@ namespace BTC_ReconciliationAutomation.Server.Controllers
             var all = await _repo.GetAllAsync();
             var allList = all.ToList();
 
-            // Get the last run's summary for pie chart
-            var lastRun = allList.OrderByDescending(r => r.RUN_DATE).FirstOrDefault();
-            var lastSummary = lastRun?.reconciliation_summaries?.FirstOrDefault();
+            // Calculate overall discrepancy totals from all runs
+            var allSummaries = allList
+                .SelectMany(r => r.reconciliation_summaries ?? new List<reconciliation_summary>())
+                .ToList();
 
-            // Pie chart data - discrepancy types
+            var totalMissingInBilling = allSummaries.Sum(s => s.MISSING_IN_BILLING_COUNT );
+            var totalMissingInCustomer = allSummaries.Sum(s => s.MISSING_IN_CUSTOMER_COUNT);
+            var totalMismatch = allSummaries.Sum(s => s.MISMATCH_COUNT);
+
+            // Pie chart data - overall discrepancy types distribution
             var pieChartData = new
             {
-                missingInBilling = lastSummary?.MISSING_IN_BILLING_COUNT ?? 0,
-                missingInCustomer = lastSummary?.MISSING_IN_CUSTOMER_COUNT ?? 0,
-                mismatch = lastSummary?.MISMATCH_COUNT ?? 0
+                missingInBilling = totalMissingInBilling,
+                missingInCustomer = totalMissingInCustomer,
+                mismatch = totalMismatch
             };
 
             // Line chart data - total discrepancies over time (last 12 months)
