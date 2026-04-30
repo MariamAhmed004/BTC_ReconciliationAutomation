@@ -17,21 +17,40 @@ const formData = ref({
 })
 
 const saving = ref(false)
+const errorMessage = ref('')
 
 async function saveConfiguration() {
   saving.value = true
+  errorMessage.value = ''
   try {
-    // TODO: Implement API call to save configuration
-    console.log('Saving configuration:', formData.value)
+    const payload = {
+      EMAIL_RECIPIENTS: formData.value.emailRecipients,
+      RUN_TIME: formData.value.timeExecution,
+      FREQUENCY: formData.value.frequency,
+      DAY_OF_MONTH: formData.value.daysOfMonth,
+      DAYS_TO_DELETE_AUDITLOGS: formData.value.logRetentionDays
+        ? parseFloat(formData.value.logRetentionDays)
+        : null,
+      DEFAULT_FILE_PATH: formData.value.filePath,
+      IGNORE_CONDITIONS: formData.value.ignoreFieldsWith,
+      ADDED_BY: 'Admin'
+    }
 
-    // Simulate API call
-    await new Promise(resolve => setTimeout(resolve, 1500))
+    const response = await fetch('/api/Configuration', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    })
 
-    // Navigate back to management page after successful save
+    if (!response.ok) {
+      const text = await response.text()
+      throw new Error(text || `Server returned ${response.status}`)
+    }
+
     router.push('/management')
   } catch (err) {
     console.error('Error saving configuration:', err)
-    alert('Failed to save configuration')
+    errorMessage.value = err.message || 'Failed to save configuration'
   } finally {
     saving.value = false
   }
@@ -114,6 +133,10 @@ function cancel() {
               type="text"
               infoText="Enter field names or patterns to exclude from reconciliation. Separate multiple values with commas."
             />
+
+            <div v-if="errorMessage" class="alert alert-danger mt-3" role="alert">
+              {{ errorMessage }}
+            </div>
 
             <div class="d-flex gap-3 justify-content-end mt-4 pt-3 border-top buttons-row">
               <button

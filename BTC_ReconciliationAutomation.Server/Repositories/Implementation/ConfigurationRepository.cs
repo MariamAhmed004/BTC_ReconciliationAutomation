@@ -1,4 +1,6 @@
+using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.EntityFrameworkCore;
 using BTC_ReconciliationAutomation.Server.Models;
@@ -37,6 +39,42 @@ namespace BTC_ReconciliationAutomation.Server.Repositories.Implementation
         {
             var e = await _db.system_configurations.FindAsync(id);
             if (e != null) { _db.system_configurations.Remove(e); await _db.SaveChangesAsync(); }
+        }
+
+        public async Task<system_configuration> CreateNewActiveAsync(system_configuration newConfig)
+        {
+            await using var transaction = await _db.Database.BeginTransactionAsync();
+            try
+            {
+                // Deactivate all currently active configurations
+                var activeConfigs = await _db.system_configurations
+                    .Where(c => c.IS_ACTIVE == "Y")
+                    .ToListAsync();
+
+                var now = DateTime.Now;
+                foreach (var config in activeConfigs)
+                {
+                    config.IS_ACTIVE = "N";
+                    config.EFFECTIVE_TO = now;
+                }
+
+                // Prepare the new configuration
+                newConfig.IS_ACTIVE = "Y";
+                newConfig.EFFECTIVE_FROM = now;
+                newConfig.EFFECTIVE_TO = null;
+                newConfig.CREATED_AT = now;
+
+                _db.system_configurations.Add(newConfig);
+                await _db.SaveChangesAsync();
+                await transaction.CommitAsync();
+
+                return newConfig;
+            }
+            catch
+            {
+                await transaction.RollbackAsync();
+                throw;
+            }
         }
     }
 }

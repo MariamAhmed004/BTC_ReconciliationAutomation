@@ -20,7 +20,36 @@ const rangeMode = ref('days') // 'days' or 'dates'
 const deleteFrom = ref('')
 const deleteTo = ref('')
 const deleteDays = ref(30)
-const confirmDeleting = ref(false)
+
+// Confirmation modal
+const showConfirmModal = ref(false)
+const confirmModalMessage = ref('')
+const pendingAction = ref(null)
+
+// Feedback modal
+const showFeedbackModal = ref(false)
+const feedbackModalTitle = ref('')
+const feedbackModalMessage = ref('')
+const feedbackModalVariant = ref('success') // 'success' or 'danger'
+
+function showConfirm(message, action) {
+  confirmModalMessage.value = message
+  pendingAction.value = action
+  showConfirmModal.value = true
+}
+
+function handleConfirm() {
+  showConfirmModal.value = false
+  if (pendingAction.value) pendingAction.value()
+  pendingAction.value = null
+}
+
+function showFeedback(title, message, variant = 'success') {
+  feedbackModalTitle.value = title
+  feedbackModalMessage.value = message
+  feedbackModalVariant.value = variant
+  showFeedbackModal.value = true
+}
 
 function formatDate(d) {
   if (!d) return ''
@@ -85,7 +114,6 @@ function onRowClick(item) {
 }
 
 async function performDeleteRange() {
-  // build payload
   const payload = {}
   if (rangeMode.value === 'days' && deleteDays.value) {
     payload.days = Number(deleteDays.value)
@@ -94,35 +122,39 @@ async function performDeleteRange() {
     if (deleteTo.value) payload.to = new Date(deleteTo.value).toISOString()
   }
 
-  try {
-    const ok = confirm('Are you sure you want to delete the selected logs? This action cannot be undone.')
-    if (!ok) return
-    const res = await fetch('/api/Log/delete/range', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) })
-    if (!res.ok) throw new Error('Delete request failed')
-    const data = await res.json()
-    alert(`Deleted ${data.deleted} log records`)
-    showDeleteModal.value = false
-    await loadLogs()
-  } catch (err) {
-    console.error('Delete range failed', err)
-    alert('Failed to delete logs')
-  }
+  const message = rangeMode.value === 'days'
+    ? `Are you sure you want to delete all logs older than ${deleteDays.value} day(s)? This action cannot be undone.`
+    : `Are you sure you want to delete all logs within the selected date range? This action cannot be undone.`
+
+  showConfirm(message, async () => {
+    try {
+      const res = await fetch('/api/Log/delete/range', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) })
+      if (!res.ok) throw new Error('Delete request failed')
+      const data = await res.json()
+      showDeleteModal.value = false
+      showFeedback('Logs Cleared', `Successfully deleted ${data.deleted} log record(s).`, 'success')
+      await loadLogs()
+    } catch (err) {
+      console.error('Delete range failed', err)
+      showFeedback('Error', 'Failed to delete logs. Please try again.', 'danger')
+    }
+  })
 }
 
 async function performDeleteAll() {
-  try {
-    const ok = confirm('Are you sure you want to delete ALL log records? This action cannot be undone.')
-    if (!ok) return
-    const res = await fetch('/api/Log/delete/all', { method: 'POST' })
-    if (!res.ok) throw new Error('Delete all request failed')
-    const data = await res.json()
-    alert(`Deleted ${data.deleted} log records`)
-    showDeleteModal.value = false
-    await loadLogs()
-  } catch (err) {
-    console.error('Delete all failed', err)
-    alert('Failed to delete logs')
-  }
+  showConfirm('Are you sure you want to delete ALL log records? This action cannot be undone.', async () => {
+    try {
+      const res = await fetch('/api/Log/delete/all', { method: 'POST' })
+      if (!res.ok) throw new Error('Delete all request failed')
+      const data = await res.json()
+      showDeleteModal.value = false
+      showFeedback('Logs Cleared', `Successfully deleted all ${data.deleted} log record(s).`, 'success')
+      await loadLogs()
+    } catch (err) {
+      console.error('Delete all failed', err)
+      showFeedback('Error', 'Failed to delete logs. Please try again.', 'danger')
+    }
+  })
 }
 
 const modalButtons = computed(() => {
@@ -164,7 +196,7 @@ function handleModalAction(action) {
     >
       <div class="delete-modal-content">
         <p class="text-muted small mb-3">
-          Choose how you want to delete log records. You can either delete all logs or delete logs by specifying a time period.
+          Choose how you want to clear log records. Deleted records are permanently removed and cannot be recovered.
         </p>
 
         <div class="mb-3">
@@ -188,7 +220,7 @@ function handleModalAction(action) {
                 v-model="rangeMode"
               />
               <label class="form-check-label" for="rangeModeDate">
-                Specify date range
+                Specify a date range 
               </label>
             </div>
             <div class="form-check">
@@ -201,24 +233,25 @@ function handleModalAction(action) {
                 v-model="rangeMode"
               />
               <label class="form-check-label" for="rangeModeDays">
-                Delete logs older than X days
+                Older than X days
               </label>
             </div>
           </div>
 
           <div v-if="rangeMode === 'dates'" class="date-inputs">
             <div class="mb-2">
-              <label class="form-label">From (date)</label>
+              <label class="form-label">From</label>
               <input type="date" v-model="deleteFrom" class="form-control" />
             </div>
             <div class="mb-2">
-              <label class="form-label">To (date)</label>
+              <label class="form-label">To</label>
               <input type="date" v-model="deleteTo" class="form-control" />
             </div>
+            <p class="text-muted small mt-1">All logs created between these two dates will be permanently deleted.</p>
           </div>
 
           <div v-if="rangeMode === 'days'" class="days-input">
-            <label class="form-label">Delete records older than (days)</label>
+            <label class="form-label">Delete logs older than (days)</label>
             <input 
               type="number" 
               v-model.number="deleteDays" 
@@ -226,13 +259,51 @@ function handleModalAction(action) {
               min="1" 
               placeholder="Enter number of days"
             />
+            <p class="text-muted small mt-1">
+              Any log record created more than <strong>{{ deleteDays || '?' }}</strong> day(s) ago will be permanently deleted.
+            </p>
           </div>
         </div>
 
         <div v-if="deleteMode === 'all'" class="alert alert-danger" role="alert">
           <i class="bi bi-exclamation-triangle-fill me-2"></i>
-          <strong>Warning:</strong> This will permanently delete all log records from the database. This action cannot be undone.
+          <strong>Warning:</strong> This will permanently delete <strong>every single log record</strong> from the database, regardless of age or type. This action cannot be undone.
         </div>
+      </div>
+    </BaseModal>
+
+    <!-- Confirmation modal -->
+    <BaseModal
+      :show="showConfirmModal"
+      title="Confirm Deletion"
+      :buttons="[
+        { text: 'Cancel', variant: 'secondary', action: 'close' },
+        { text: 'Yes, Delete', variant: 'danger', action: 'confirm' }
+      ]"
+      @close="showConfirmModal = false"
+      @action="(a) => { if (a === 'confirm') handleConfirm() }"
+    >
+      <div class="d-flex align-items-start gap-3">
+        <i class="bi bi-exclamation-triangle-fill text-danger fs-4 flex-shrink-0"></i>
+        <p class="mb-0">{{ confirmModalMessage }}</p>
+      </div>
+    </BaseModal>
+
+    <!-- Feedback modal -->
+    <BaseModal
+      :show="showFeedbackModal"
+      :title="feedbackModalTitle"
+      :buttons="[{ text: 'Close', variant: 'secondary', action: 'close' }]"
+      @close="showFeedbackModal = false"
+    >
+      <div class="d-flex align-items-start gap-3">
+        <i
+          :class="[
+            'bi fs-4 flex-shrink-0',
+            feedbackModalVariant === 'success' ? 'bi-check-circle-fill text-success' : 'bi-x-circle-fill text-danger'
+          ]"
+        ></i>
+        <p class="mb-0">{{ feedbackModalMessage }}</p>
       </div>
     </BaseModal>
 

@@ -23,7 +23,7 @@ public partial class system_configuration
 
     [StringLength(1)]
     [Unicode(false)]
-    public string IS_ACTIVE { get; set; } = null!;
+    public string? IS_ACTIVE { get; set; }
 
     [Precision(6)]
     public DateTime EFFECTIVE_FROM { get; set; }

@@ -5,6 +5,18 @@ using BTC_ReconciliationAutomation.Server.Models;
 
 namespace BTC_ReconciliationAutomation.Server.Controllers
 {
+    public class CreateConfigurationRequest
+    {
+        public string? EMAIL_RECIPIENTS { get; set; }
+        public string? RUN_TIME { get; set; }
+        public string? FREQUENCY { get; set; }
+        public string? DAY_OF_MONTH { get; set; }
+        public decimal? DAYS_TO_DELETE_AUDITLOGS { get; set; }
+        public string? DEFAULT_FILE_PATH { get; set; }
+        public string? IGNORE_CONDITIONS { get; set; }
+        public string? ADDED_BY { get; set; }
+    }
+
     [ApiController]
     [Route("api/[controller]")]
     public class ConfigurationController : ControllerBase
@@ -33,13 +45,34 @@ namespace BTC_ReconciliationAutomation.Server.Controllers
             return Ok(config);
         }
 
+        // Create a new active configuration and deactivate the previous active one
+        [HttpPost]
+        public async Task<IActionResult> Create([FromBody] CreateConfigurationRequest request)
+        {
+            if (request == null) return BadRequest("Configuration payload is required.");
+
+            var config = new system_configuration
+            {
+                EMAIL_RECIPIENTS = request.EMAIL_RECIPIENTS,
+                RUN_TIME = request.RUN_TIME,
+                FREQUENCY = request.FREQUENCY,
+                DAY_OF_MONTH = request.DAY_OF_MONTH,
+                DAYS_TO_DELETE_AUDITLOGS = request.DAYS_TO_DELETE_AUDITLOGS,
+                DEFAULT_FILE_PATH = request.DEFAULT_FILE_PATH,
+                IGNORE_CONDITIONS = request.IGNORE_CONDITIONS,
+                ADDED_BY = request.ADDED_BY
+            };
+
+            var created = await _repo.CreateNewActiveAsync(config);
+            return CreatedAtAction(nameof(GetById), new { id = created.CONFIG_ID }, created);
+        }
+
         // Update a configuration value
         [HttpPut("{id}")]
         public async Task<IActionResult> Update([FromRoute] object id, [FromBody] system_configuration config)
         {
             var existing = await _repo.GetByIdAsync(id);
             if (existing == null) return NotFound();
-            // simple replace - in future map fields
             await _repo.UpdateAsync(config);
             return NoContent();
         }

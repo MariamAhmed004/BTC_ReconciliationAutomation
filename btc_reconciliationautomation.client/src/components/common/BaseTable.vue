@@ -222,7 +222,7 @@ function handleCloseFilter() {
                   </div>
                 </template>
                 <template v-else-if="col.render === 'status'">
-                  <span v-if="item[col.key] === 'ok' || item[col.key] === true" class="status-badge success">✓</span>
+                  <span v-if="item[col.key] === 'ok' || item[col.key] === true || item[col.key] === 'Y'" class="status-badge success">✓</span>
                   <span v-else class="status-badge danger">✕</span>
                 </template>
                 <template v-else-if="col.render === 'statusBadge'">

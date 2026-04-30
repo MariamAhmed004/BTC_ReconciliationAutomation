@@ -52,14 +52,20 @@ namespace BTC_ReconciliationAutomation.Server.Controllers
         {
             var all = await _repo.GetAllAsync();
 
-            var to = req?.To ?? System.DateTime.UtcNow;
-            var from = req?.From ?? System.DateTime.MinValue;
+            IEnumerable<BTC_ReconciliationAutomation.Server.Models.system_log> filtered;
+
             if (req?.Days != null && req.Days > 0)
             {
-                from = System.DateTime.UtcNow.AddDays(-req.Days.Value);
+                // Delete logs older than the specified number of days
+                var cutoff = System.DateTime.UtcNow.AddDays(-req.Days.Value);
+                filtered = System.Linq.Enumerable.Where(all, l => l.CREATED_AT < cutoff).ToList();
             }
-
-            var filtered = System.Linq.Enumerable.Where(all, l => l.CREATED_AT >= from && l.CREATED_AT <= to).ToList();
+            else
+            {
+                var to = req?.To ?? System.DateTime.UtcNow;
+                var from = req?.From ?? System.DateTime.MinValue;
+                filtered = System.Linq.Enumerable.Where(all, l => l.CREATED_AT >= from && l.CREATED_AT <= to).ToList();
+            }
             var count = 0;
             foreach (var f in filtered)
             {
@@ -68,9 +74,13 @@ namespace BTC_ReconciliationAutomation.Server.Controllers
             }
 
             // record deletion action in logs (LOG_LEVEL_ID set to 1 by default)
+            var message = req?.Days != null && req.Days > 0
+                ? $"Deleted {count} log records older than {req.Days} days"
+                : $"Deleted {count} log records (range: {req?.From:u} - {req?.To:u})";
+
             var audit = new BTC_ReconciliationAutomation.Server.Models.system_log
             {
-                LOG_MESSAGE = $"Deleted {count} log records (range: {from:u} - {to:u})",
+                LOG_MESSAGE = message,
                 CREATED_AT = System.DateTime.UtcNow,
                 LOG_LEVEL_ID = 1
             };
