@@ -15,7 +15,6 @@ namespace BTC_ReconciliationAutomation.Server.Repositories.Implementation
 
         public async Task<IEnumerable<reconciliation_run>> GetAllAsync()
         {
-            // include related reconciliation summaries so the API returns the joined data
             return await _db.reconciliation_runs
                 .Include(r => r.reconciliation_summaries)
                 .Include(r => r.RUN_STATUS)
@@ -30,7 +29,6 @@ namespace BTC_ReconciliationAutomation.Server.Repositories.Implementation
         {
             if (id == null) return null;
 
-            // ensure we convert the id to the expected key type and include summaries
             int key;
             try { key = System.Convert.ToInt32(id); } catch { return null; }
 
@@ -66,27 +64,88 @@ namespace BTC_ReconciliationAutomation.Server.Repositories.Implementation
             if (e != null) { _db.reconciliation_runs.Remove(e); await _db.SaveChangesAsync(); }
         }
 
-        public async Task<string> RunMainReconciliationAsync()
+        public async Task<ReconciliationFileResult> RunMainReconciliationAsync(bool isTriggered, string triggeredBy)
         {
-            try
-            {
-                var connection = _db.Database.GetDbConnection();
+            var connection = _db.Database.GetDbConnection() as OracleConnection
+                ?? throw new InvalidOperationException("Could not obtain OracleConnection.");
+
+            if (connection.State != System.Data.ConnectionState.Open)
                 await connection.OpenAsync();
 
-                using (var command = connection.CreateCommand())
-                {
-                    command.CommandText = "BEGIN run_main_reconciliation_log; END;";
-                    command.CommandType = System.Data.CommandType.Text;
+            using var command = connection.CreateCommand() as OracleCommand
+                ?? throw new InvalidOperationException("Could not create OracleCommand.");
 
-                    await command.ExecuteNonQueryAsync();
-                }
+            // ODP.NET managed driver cannot bind Oracle BOOLEAN directly.
+            // Use an anonymous PL/SQL block to convert the INT bind variable to BOOLEAN locally.
+            command.CommandType = System.Data.CommandType.Text;
+            command.CommandText = @"
+BEGIN
+    run_main_reconciliation_log(
+        p_is_triggered   => CASE WHEN :p_is_triggered = 1 THEN TRUE ELSE FALSE END,
+        p_triggered_by   => :p_triggered_by,
+        p_out_file1_name => :p_out_file1_name,
+        p_out_file1_clob => :p_out_file1_clob,
+        p_out_file2_name => :p_out_file2_name,
+        p_out_file2_clob => :p_out_file2_clob,
+        p_out_file3_name => :p_out_file3_name,
+        p_out_file3_clob => :p_out_file3_clob,
+        p_out_file4_name => :p_out_file4_name,
+        p_out_file4_clob => :p_out_file4_clob
+    );
+END;";
 
-                return "Reconciliation process completed successfully";
-            }
-            catch (Exception ex)
+            // IN parameters
+            command.Parameters.Add(new OracleParameter("p_is_triggered", OracleDbType.Int32)
             {
-                return $"Error running reconciliation: {ex.Message}";
+                Direction = System.Data.ParameterDirection.Input,
+                Value = isTriggered ? 1 : 0
+            });
+            command.Parameters.Add(new OracleParameter("p_triggered_by", OracleDbType.Varchar2, 50)
+            {
+                Direction = System.Data.ParameterDirection.Input,
+                Value = triggeredBy ?? "Automatically"
+            });
+
+            // OUT parameters — file names
+            var pFile1Name = new OracleParameter("p_out_file1_name", OracleDbType.Varchar2, 200) { Direction = System.Data.ParameterDirection.Output };
+            var pFile2Name = new OracleParameter("p_out_file2_name", OracleDbType.Varchar2, 200) { Direction = System.Data.ParameterDirection.Output };
+            var pFile3Name = new OracleParameter("p_out_file3_name", OracleDbType.Varchar2, 200) { Direction = System.Data.ParameterDirection.Output };
+            var pFile4Name = new OracleParameter("p_out_file4_name", OracleDbType.Varchar2, 200) { Direction = System.Data.ParameterDirection.Output };
+
+            // OUT parameters — file CLOBs
+            var pFile1Clob = new OracleParameter("p_out_file1_clob", OracleDbType.Clob) { Direction = System.Data.ParameterDirection.Output };
+            var pFile2Clob = new OracleParameter("p_out_file2_clob", OracleDbType.Clob) { Direction = System.Data.ParameterDirection.Output };
+            var pFile3Clob = new OracleParameter("p_out_file3_clob", OracleDbType.Clob) { Direction = System.Data.ParameterDirection.Output };
+            var pFile4Clob = new OracleParameter("p_out_file4_clob", OracleDbType.Clob) { Direction = System.Data.ParameterDirection.Output };
+
+            command.Parameters.AddRange(new[]
+            {
+                pFile1Name, pFile1Clob,
+                pFile2Name, pFile2Clob,
+                pFile3Name, pFile3Clob,
+                pFile4Name, pFile4Clob
+            });
+
+            await command.ExecuteNonQueryAsync();
+
+            static string? ReadClob(OracleParameter p)
+            {
+                if (p.Value is Oracle.ManagedDataAccess.Types.OracleClob clob && !clob.IsNull)
+                    return clob.Value;
+                return null;
             }
+
+            return new ReconciliationFileResult
+            {
+                File1Name = pFile1Name.Value?.ToString(),
+                File1Content = ReadClob(pFile1Clob),
+                File2Name = pFile2Name.Value?.ToString(),
+                File2Content = ReadClob(pFile2Clob),
+                File3Name = pFile3Name.Value?.ToString(),
+                File3Content = ReadClob(pFile3Clob),
+                File4Name = pFile4Name.Value?.ToString(),
+                File4Content = ReadClob(pFile4Clob),
+            };
         }
     }
 }

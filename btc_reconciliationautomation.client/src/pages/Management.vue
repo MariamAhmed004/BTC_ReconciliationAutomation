@@ -107,34 +107,36 @@ async function fetchConfigurations() {
 
 async function runReconciliation() {
   isRunning.value = true
-  console.log('Starting reconciliation...')
   try {
+    // TODO: replace 'MA' with the actual logged-in username when auth is implemented
+    const triggeredBy = 'MA'
+
     const response = await fetch('api/reconciliation/run', {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json'
-      }
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ triggeredBy })
     })
 
-    console.log('Response status:', response.status, response.ok)
-
     if (response.ok) {
-      const data = await response.json()
-      console.log('Response data:', data)
+      // Response is a zip file — trigger browser download
+      const blob = await response.blob()
+      const url = URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = 'reconciliation_results.zip'
+      document.body.appendChild(a)
+      a.click()
+      a.remove()
+      URL.revokeObjectURL(url)
 
       modalTitle.value = 'Success'
-      modalMessage.value = data.message || 'Reconciliation process completed successfully'
+      modalMessage.value = 'Reconciliation completed. Your files are downloading.'
       modalVariant.value = 'success'
       showModal.value = true
 
-      console.log('Modal should show now:', showModal.value)
-
-      // Optionally refresh configurations after successful run
       await fetchConfigurations()
     } else {
       const errorData = await response.json().catch(() => ({ message: response.statusText }))
-      console.log('Error response:', errorData)
-
       modalTitle.value = 'Error'
       modalMessage.value = errorData.message || 'Failed to run reconciliation'
       modalVariant.value = 'danger'
@@ -142,14 +144,12 @@ async function runReconciliation() {
     }
   } catch (err) {
     console.error('Exception caught:', err)
-
     modalTitle.value = 'Error'
     modalMessage.value = `Error running reconciliation: ${err.message}`
     modalVariant.value = 'danger'
     showModal.value = true
   } finally {
     isRunning.value = false
-    console.log('Finished reconciliation call')
   }
 }
 

@@ -1,4 +1,7 @@
+using System.IO;
+using System.IO.Compression;
 using System.Linq;
+using System.Text;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
 using BTC_ReconciliationAutomation.Server.Repositories.Interfaces;
@@ -29,11 +32,37 @@ namespace BTC_ReconciliationAutomation.Server.Controllers
         }
 
         // Run the main reconciliation stored procedure
+        // Body: { "triggeredBy": "username" }
+        // - Manual run (isTriggered=false): returns a zip file containing all 4 output files
+        // - Automatic run (isTriggered=true): procedure sends email internally, returns success message
         [HttpPost("run")]
-        public async Task<IActionResult> RunReconciliation()
+        public async Task<IActionResult> RunReconciliation([FromBody] RunReconciliationRequest? request)
         {
-            var result = await _repo.RunMainReconciliationAsync();
-            return Ok(new { message = result });
+            var triggeredBy = request?.TriggeredBy ?? "Manual";
+            bool isTriggered = false; // manual run from UI
+
+            var result = await _repo.RunMainReconciliationAsync(isTriggered, triggeredBy);
+
+            // Build a zip in memory containing each non-null file
+            using var zipStream = new MemoryStream();
+            using (var archive = new ZipArchive(zipStream, ZipArchiveMode.Create, leaveOpen: true))
+            {
+                void AddEntry(string? name, string? content)
+                {
+                    if (string.IsNullOrEmpty(name) || content == null) return;
+                    var entry = archive.CreateEntry(name, CompressionLevel.Fastest);
+                    using var writer = new StreamWriter(entry.Open(), Encoding.UTF8);
+                    writer.Write(content);
+                }
+
+                AddEntry(result.File1Name, result.File1Content);
+                AddEntry(result.File2Name, result.File2Content);
+                AddEntry(result.File3Name, result.File3Content);
+                AddEntry(result.File4Name, result.File4Content);
+            }
+
+            zipStream.Position = 0;
+            return File(zipStream.ToArray(), "application/zip", "reconciliation_results.zip");
         }
 
         // Get run status and details
@@ -273,5 +302,10 @@ namespace BTC_ReconciliationAutomation.Server.Controllers
                 return StatusCode(500, new { message = "Error fetching live stats", error = ex.Message });
             }
         }
+    }
+
+    public class RunReconciliationRequest
+    {
+        public string? TriggeredBy { get; set; }
     }
 }
