@@ -21,17 +21,8 @@ import logo from '@/assets/logo.png'
               </div>
             </div>
 
-            <!-- Center: Information -->
-            <div class="col-md-4 mb-4 mb-md-0 text-center">
-              <div class="footer-section-title">INFORMATION</div>
-              <ul class="list-unstyled footer-links mt-2 mb-0">
-                <li><a href="#">Privacy Policy</a></li>
-                <li><a href="#">Terms of Service</a></li>
-              </ul>
-            </div>
-
             <!-- Right: Compliance & Version -->
-            <div class="col-md-4 text-md-end">
+            <div class="col-md-8 text-md-end">
               <div class="footer-section-title">COMPLIANCE &amp; VERSION INFO</div>
               <div class="footer-version mt-2">
                 System Version: v1.0.0<br />

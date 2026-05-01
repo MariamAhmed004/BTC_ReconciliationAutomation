@@ -67,7 +67,7 @@ async function loadRuns() {
     }
     // map server model to table item shape
     // map server model to table item shape using the API response casing
-    items.value = (data || []).map(r => {
+    const mappedItems = (data || []).map(r => {
       const summaries = r.reconciliation_summaries || []
       // sum discrepancy totals from summaries when available, otherwise fallback to number of summaries
       const totalDiscrepancies = Array.isArray(summaries)
@@ -79,6 +79,7 @@ async function loadRuns() {
 
       // Get raw date for filtering
       const rawDate = r.ruN_DATE ?? r.RUN_DATE ?? r.runDate
+      const runDateMs = rawDate ? new Date(rawDate).getTime() : null
 
       return {
         id: r.ruN_ID ?? r.RUN_ID ?? r.id,
@@ -86,9 +87,20 @@ async function loadRuns() {
         statusBadge: statusValue, // Use statusBadge for rendering
         timestamp: formatDate(rawDate), // Formatted for display
         timestampRaw: rawDate, // Keep raw date for filtering
+        runDateMs: Number.isFinite(runDateMs) ? runDateMs : null,
         discrepancies: totalDiscrepancies,
         triggeredBy: r.triggereD_BY ?? r.TRIGGERED_BY ?? r.triggeredBy
       }
+    })
+
+    // Sort by run timestamp descending (latest first), fallback to ID
+    items.value = mappedItems.sort((a, b) => {
+      const aDate = a.runDateMs
+      const bDate = b.runDateMs
+      if (aDate != null && bDate != null && aDate !== bDate) return bDate - aDate
+      if (aDate != null && bDate == null) return -1
+      if (aDate == null && bDate != null) return 1
+      return (b.id ?? 0) - (a.id ?? 0)
     })
   } catch (err) {
     console.error('Error loading reconciliation runs', err)
@@ -106,12 +118,7 @@ onMounted(() => { loadRuns() })
       instruction="Click on the row to view the log details"
     >
       <template #icon>
-        <!-- simple inline icon for now; replace with proper icon later -->
-        <svg width="36" height="36" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden>
-          <path d="M3 3h7v7H3z" fill="#6c757d" />
-          <path d="M14 3h7v7h-7z" fill="#6c757d" />
-          <path d="M3 14h7v7H3z" fill="#6c757d" />
-        </svg>
+        <i class="bi bi-clock-history" style="font-size: 2rem; color: #495057;"></i>
       </template>
 
     </PageHeader>

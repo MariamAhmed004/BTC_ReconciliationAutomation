@@ -8,6 +8,8 @@ import BaseModal from '../components/common/BaseModal.vue'
 
 const router = useRouter()
 const title = 'Configuration and manual trigger'
+const subtitle = 'Following are the details of the reconciliation process runs :'
+const instruction = 'Click on the row to view the full details'
 
 const configurations = ref([])
 const loading = ref(false)
@@ -169,7 +171,11 @@ onMounted(() => {
 
 <template>
   <div class="container pt-4">
-    <PageHeader :title="title" />
+    <PageHeader :title="title" :subtitle="subtitle" :instruction="instruction">
+      <template #icon>
+        <i class="bi bi-gear-fill" style="font-size: 2rem; color: #6c757d;"></i>
+      </template>
+    </PageHeader>
 
     <div v-if="loading" class="alert alert-info mt-3">
       Loading configurations...

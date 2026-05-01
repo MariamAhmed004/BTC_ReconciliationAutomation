@@ -297,9 +297,27 @@ function handleCloseFilter() {
   padding: 0.9rem 1rem;
 }
 
-.pagination .page-link { cursor: pointer }
-.pagination .page-item.disabled .page-link { pointer-events: none; opacity: 0.6 }
-.pagination .page-item.active .page-link { background-color: #adb5bd; border-color: #adb5bd }
+  .pagination .page-link {
+    cursor: pointer;
+    background-color: #f8f9fa;
+    border-color: #dee2e6;
+    color: #495057;
+  }
+
+  .pagination .page-link:hover,
+  .pagination .page-link:focus {
+    background-color: #e9ecef;
+    border-color: #dee2e6;
+    color: #212529;
+  }
+
+  .pagination .page-item.disabled .page-link { pointer-events: none; opacity: 0.6 }
+
+  .pagination .page-item.active .page-link {
+    background-color: #495057;
+    border-color: #495057;
+    color: #fff;
+  }
 
 .table-row-clickable { cursor: pointer }
 .table-row-clickable:hover { background: rgba(0,0,0,0.02) }

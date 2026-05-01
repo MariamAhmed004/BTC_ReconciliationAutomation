@@ -1,6 +1,7 @@
 <script setup>
 import { ref, onMounted, computed } from 'vue'
 import { useRoute } from 'vue-router'
+import PageHeader from '@/components/common/PageHeader.vue'
 import BaseTable from '../components/common/BaseTable.vue'
 
 const route = useRoute()
@@ -118,12 +119,15 @@ const logsColumns = [
 
 <template>
   <div class="container pt-4">
-    <div class="d-flex align-items-center mb-3">
-      <div class="me-2"><span class="fs-4">&#x2630;</span></div>
-      <h3 class="mb-0">Reconciliation Execution Details</h3>
-    </div>
-
-    <p class="text-muted">Following are the details of the reconciliation process : <br/><small>Click on a file icon to download</small></p>
+    <PageHeader
+      title="Reconciliation Execution Details"
+      subtitle="Following are the details of the reconciliation process :"
+      instruction="Click on a file icon to download"
+    >
+      <template #icon>
+        <i class="bi bi-list-check" style="font-size: 2rem; color: #6c757d;"></i>
+      </template>
+    </PageHeader>
 
     <!-- Loading state -->
     <div v-if="isLoading" class="text-center my-5">
@@ -140,19 +144,35 @@ const logsColumns = [
 
     <!-- Content -->
     <div v-if="!isLoading && !error">
-      <div class="mb-3 text-center">
-        <div>
-          <span :class="['fw-semibold', statusDisplay.class]">{{ statusDisplay.text }}</span>
-          <span v-if="details.errorMessage" class="mx-3 text-danger">→ ERROR: {{ details.errorMessage }}</span>
-        </div>
-      </div>
+      <div class="run-details card border-0 shadow-sm mb-4">
+        <div class="card-body">
+          <div class="d-flex align-items-start justify-content-between flex-wrap gap-2">
+            <div class="d-flex align-items-center gap-2">
+              <span class="text-muted small">Status</span>
+              <span :class="['badge', statusDisplay.class === 'text-success' ? 'bg-success' : statusDisplay.class === 'text-danger' ? 'bg-danger' : 'bg-secondary']">
+                {{ statusDisplay.text }}
+              </span>
+            </div>
+            <div v-if="details.errorMessage" class="text-danger small">
+              <strong>Error:</strong> {{ details.errorMessage }}
+            </div>
+          </div>
 
-      <div class="text-center mb-3">
-        <div class="fw-bold">Run at: {{ details.runAt }}</div>
-        <div class="fw-semibold mt-2">Related Configurations</div>
-        <div class="mb-1">{{ details.relatedConfigurations }}</div>
-        <div class="fw-semibold mt-2">Triggered by</div>
-        <div class="mb-3">{{ details.triggeredBy }}</div>
+          <div class="detail-grid mt-3">
+            <div class="detail-row">
+              <div class="detail-label">Run at</div>
+              <div class="detail-value">{{ details.runAt }}</div>
+            </div>
+            <div class="detail-row">
+              <div class="detail-label">Triggered by</div>
+              <div class="detail-value">{{ details.triggeredBy }}</div>
+            </div>
+            <div class="detail-row">
+              <div class="detail-label">Related configuration</div>
+              <div class="detail-value">{{ details.relatedConfigurations }}</div>
+            </div>
+          </div>
+        </div>
       </div>
 
       <hr />
@@ -212,6 +232,34 @@ const logsColumns = [
 </template>
 
 <style scoped>
+.run-details {
+  border-radius: 0.5rem;
+}
+
+.detail-grid {
+  display: grid;
+  gap: 0.75rem;
+}
+
+.detail-row {
+  display: flex;
+  gap: 0.75rem;
+  align-items: flex-start;
+}
+
+.detail-label {
+  min-width: 160px;
+  color: #6c757d;
+  font-weight: 600;
+  font-size: 0.875rem;
+}
+
+.detail-value {
+  flex: 1;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
 .file-icon {
   width: 96px;
   height: 96px;

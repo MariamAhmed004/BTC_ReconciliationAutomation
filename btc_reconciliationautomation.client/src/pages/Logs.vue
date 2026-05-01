@@ -1,6 +1,7 @@
 <script setup>
 import { ref, onMounted, computed } from 'vue'
 import { useRouter } from 'vue-router'
+import PageHeader from '@/components/common/PageHeader.vue'
 import BaseTable from '../components/common/BaseTable.vue'
 import BaseFilter from '../components/common/BaseFilter.vue'
 import BaseModal from '../components/common/BaseModal.vue'
@@ -181,7 +182,16 @@ function handleModalAction(action) {
 
 <template>
   <div class="container pt-4">
-    <h3>Logs</h3>
+    <PageHeader
+      title="Audit Logs"
+      subtitle="Following are the system audit logs recorded :"
+      instruction="Use Request Log Clearance to permanently remove audit log records (by date range or all). This helps manage log volume and storage."
+    >
+      <template #icon>
+        <i class="bi bi-file-earmark-text" style="font-size: 2rem; color: #6c757d;"></i>
+      </template>
+    </PageHeader>
+
     <div class="mb-3 d-flex justify-content-end">
       <button class="btn btn-sm btn-danger" @click="showDeleteModal = true">Request Log Clearance</button>
     </div>

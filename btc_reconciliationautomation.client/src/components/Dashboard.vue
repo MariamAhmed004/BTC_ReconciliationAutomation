@@ -91,19 +91,30 @@ const fetchLatestRuns = async () => {
       // Get status from RUN_STATUS relationship
       const statusValue = r.ruN_STATUS?.ruN_STATUS1 ?? r.RUN_STATUS?.RUN_STATUS1 ?? 'UNKNOWN'
 
+      const runDate = r.ruN_DATE ?? r.RUN_DATE ?? r.runDate
+      const runDateMs = runDate ? new Date(runDate).getTime() : null
+
       return {
         id: r.ruN_ID ?? r.RUN_ID ?? r.id,
         status: statusValue,
         statusBadge: statusValue,
-        timestamp: formatDateForTable(r.ruN_DATE ?? r.RUN_DATE ?? r.runDate),
+        timestamp: formatDateForTable(runDate),
+        runDateMs: Number.isFinite(runDateMs) ? runDateMs : null,
         discrepancies: totalDiscrepancies,
         triggeredBy: r.triggereD_BY ?? r.TRIGGERED_BY ?? r.triggeredBy
       }
     })
 
-    // Sort by ID descending (latest first) and take only 5
+    // Sort by run timestamp descending (latest first), fallback to ID, and take only 5
     items.value = allItems
-      .sort((a, b) => (b.id ?? 0) - (a.id ?? 0))
+      .sort((a, b) => {
+        const aDate = a.runDateMs
+        const bDate = b.runDateMs
+        if (aDate != null && bDate != null && aDate !== bDate) return bDate - aDate
+        if (aDate != null && bDate == null) return -1
+        if (aDate == null && bDate != null) return 1
+        return (b.id ?? 0) - (a.id ?? 0)
+      })
       .slice(0, 5)
 
   } catch (err) {
@@ -323,6 +334,9 @@ onMounted(() => {
       <div class="row mb-4">
         <div class="col-12">
           <h3 class="fw-bold">Reconciliation Automation Dashboard</h3>
+          <div class="text-muted">
+            Monitor reconciliation runs, discrepancies, and completion status in one place.
+          </div>
         </div>
       </div>
 
@@ -337,6 +351,8 @@ onMounted(() => {
               </div>
               <div>
                 <button class="btn btn-sm btn-success" @click="refreshAll" :disabled="isLoading">
+                  <span v-if="isLoading" class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
+                  <i v-else class="bi bi-arrow-clockwise me-2" aria-hidden="true"></i>
                   {{ isLoading ? 'Loading...' : 'Refresh' }}
                 </button>
               </div>
@@ -350,17 +366,17 @@ onMounted(() => {
 
             <div class="row text-center">
               <div class="col-md-4 mb-2">
-                <BaseCard title="Missing in ROWB" headerClass="bg-light text-dark border" bodyClass="py-3">
+                <BaseCard title="Missing in ROWB" headerClass="bg-light text-dark border" bodyClass="py-3 fs-4 fw-semibold">
                   {{ liveStats.missingInRowb }}
                 </BaseCard>
               </div>
               <div class="col-md-4 mb-2">
-                <BaseCard title="Not Active in Siebel" headerClass="bg-light text-dark border" bodyClass="py-3">
+                <BaseCard title="Not Active in Siebel" headerClass="bg-light text-dark border" bodyClass="py-3 fs-4 fw-semibold">
                   {{ liveStats.notActiveInSiebel }}
                 </BaseCard>
               </div>
               <div class="col-md-4 mb-2">
-                <BaseCard title="Mismatched packages" headerClass="bg-light text-dark border" bodyClass="py-3">
+                <BaseCard title="Mismatched packages" headerClass="bg-light text-dark border" bodyClass="py-3 fs-4 fw-semibold">
                   {{ liveStats.mismatchedPackages }}
                 </BaseCard>
               </div>
@@ -371,31 +387,34 @@ onMounted(() => {
 
       <!-- Charts Section -->
       <div class="row mb-4">
-        <div class="col-12">
-          <h5 class="mb-3">Discrepancy Types Distribution</h5>
-          <BaseChart :options="pieChartOptions" />
+        <div class="col-12 col-lg-8 mb-4 mb-lg-0">
+          <div class="visual-card h-100">
+            <BaseChart :options="pieChartOptions" />
+          </div>
         </div>
-      </div>
+        <div class="col-12 col-lg-4">
+          <div class="visual-card h-100">
+            <div class="success-rate-panel text-center" style="min-height: 350px;">
+              <h5 class="mb-2">Reconciliation Success Rate</h5>
 
-      <div class="row mb-4">
-        <div class="col-12">
-          <h5 class="mb-3">Total Discrepancies Over Time</h5>
-          <BaseChart :options="lineChartOptions" />
-        </div>
-      </div>
-
-      <div class="row mb-4">
-        <div class="col-12">
-          <h5 class="mb-3 text-center">Reconciliation Success Rate</h5>
-          <div class="d-flex justify-content-center align-items-center" style="height: 300px;">
-            <div class="text-center">
-              <div class="success-rate-circle" :style="{ borderColor: getSuccessRateColor }">
-                <div class="success-rate-value" :style="{ color: getSuccessRateColor }">
-                  {{ chartData.successRate.toFixed(1) }}%
+              <div class="success-rate-ring-wrap flex-grow-1">
+                <div class="success-rate-circle" :style="{ borderColor: getSuccessRateColor }">
+                  <div class="success-rate-value" :style="{ color: getSuccessRateColor }">
+                    {{ chartData.successRate.toFixed(1) }}%
+                  </div>
                 </div>
               </div>
-              <div class="mt-3 text-muted">Successful Completion Rate</div>
+
+              <div class="mt-2 text-muted">Successful Completion Rate</div>
             </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="row mb-4">
+        <div class="col-12">
+          <div class="visual-card">
+            <BaseChart :options="lineChartOptions" />
           </div>
         </div>
       </div>
@@ -456,6 +475,25 @@ onMounted(() => {
 .display-6 { font-size: 2rem; }
 .fst-italic { font-style: italic; }
 .file-icon { }
+
+.visual-card {
+  background: #f8f9fa;
+  border-radius: 8px;
+  padding: 1rem 1.25rem;
+}
+
+.success-rate-panel {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  height: 100%;
+}
+
+.success-rate-ring-wrap {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
 
 /* Success rate circle styles */
 .success-rate-circle {
