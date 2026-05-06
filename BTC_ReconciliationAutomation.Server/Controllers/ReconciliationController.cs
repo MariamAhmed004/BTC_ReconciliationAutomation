@@ -6,6 +6,7 @@ using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
 using BTC_ReconciliationAutomation.Server.Repositories.Interfaces;
 using BTC_ReconciliationAutomation.Server.Models;
+using BTC_ReconciliationAutomation.Server.DTOs;
 
 namespace BTC_ReconciliationAutomation.Server.Controllers
 {
@@ -346,10 +347,5 @@ namespace BTC_ReconciliationAutomation.Server.Controllers
                 return StatusCode(500, new { message = "Error fetching live stats", error = ex.Message });
             }
         }
-    }
-
-    public class RunReconciliationRequest
-    {
-        public string? TriggeredBy { get; set; }
     }
 }
