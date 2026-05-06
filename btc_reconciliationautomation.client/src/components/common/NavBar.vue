@@ -1,10 +1,23 @@
 <script setup>
-import { ref, onBeforeUnmount } from 'vue'
+import { ref, computed, onMounted, onBeforeUnmount } from 'vue'
 import { useRouter } from 'vue-router'
 
 const router = useRouter()
 
 const isUserMenuOpen = ref(false)
+const user = ref(null)
+
+const initials = computed(() => {
+  if (!user.value) return '?'
+  const f = user.value.firstName?.[0] ?? ''
+  const l = user.value.lastName?.[0] ?? ''
+  return (f + l).toUpperCase() || user.value.userName?.[0]?.toUpperCase() || '?'
+})
+
+const fullName = computed(() => {
+  if (!user.value) return ''
+  return `${user.value.firstName ?? ''} ${user.value.lastName ?? ''}`.trim()
+})
 
 const toggleUserMenu = () => {
   isUserMenuOpen.value = !isUserMenuOpen.value
@@ -27,13 +40,23 @@ onBeforeUnmount(() => {
   document.removeEventListener('click', onDocumentClick)
 })
 
+onMounted(async () => {
+  try {
+    const res = await fetch('/api/auth/me', { credentials: 'include' })
+    if (res.ok) user.value = await res.json()
+  } catch {
+    // not logged in or network error
+  }
+})
+
 const logout = async () => {
   closeUserMenu()
   try {
-    await fetch('/api/auth/logout', { method: 'POST' })
+    await fetch('/api/auth/logout', { method: 'POST', credentials: 'include' })
   } catch {
     // ignore network errors, still proceed to redirect
   }
+  user.value = null
   await router.push('/login')
 }
 </script>
@@ -41,14 +64,14 @@ const logout = async () => {
 <template>
   <nav class="navbar navbar-expand-lg bg-light border-bottom shadow-sm">
     <div class="container-fluid">
-      <router-link to="/" class="navbar-brand d-flex align-items-center">
+      <router-link to="/dashboard" class="navbar-brand d-flex align-items-center">
         <img src="/src/assets/logo.png" alt="Logo" width="140" height="40" class="me-2" />
       </router-link>
 
       <div class="collapse navbar-collapse flex-grow-1 order-3 order-lg-2" id="navbarNav">
         <ul class="navbar-nav mx-auto align-items-center text-center">
           <li class="nav-item px-2">
-            <router-link class="nav-link" to="/">Dashboard</router-link>
+            <router-link class="nav-link" to="/dashboard">Dashboard</router-link>
           </li>
           <li class="nav-item px-2">
             <router-link class="nav-link" to="/reconciliation">Reconciliation Execution</router-link>
@@ -78,14 +101,18 @@ const logout = async () => {
             aria-label="User menu"
             :aria-expanded="isUserMenuOpen ? 'true' : 'false'"
           >
-            MA
+            {{ initials }}
           </button>
 
           <div
             v-if="isUserMenuOpen"
-            class="dropdown-menu dropdown-menu-end show"
+            class="dropdown-menu dropdown-menu-end show user-dropdown"
             style="position: absolute; top: calc(100% + 0.5rem); right: 0;"
           >
+            <div class="user-info px-3 py-2 border-bottom">
+              <div class="fw-semibold">{{ fullName }}</div>
+              <div class="text-muted small">{{ user?.email }}</div>
+            </div>
             <button class="dropdown-item" type="button" @click="logout">
               Logout
             </button>
@@ -146,5 +173,13 @@ nav.navbar {
 /* ensure avatar text is black */
 .user-avatar {
   color: #000;
+}
+
+.user-dropdown {
+  min-width: 200px;
+}
+
+.user-info {
+  line-height: 1.4;
 }
 </style>

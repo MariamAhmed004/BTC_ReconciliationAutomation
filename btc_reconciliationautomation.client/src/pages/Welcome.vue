@@ -18,7 +18,7 @@
             <h1 class="fw-bold">Welcome</h1>
             <p class="lead text-muted">Access the reconciliation dashboard</p>
             <p class="text-muted">This website provides you with details regarding automated processes</p>
-            <router-link to="/" class="btn btn-dark btn-lg mt-3">Access Dashboard</router-link>
+            <router-link to="/login" class="btn btn-dark btn-lg mt-3">Get Started</router-link>
           </div>
         </div>
       </div>
