@@ -15,11 +15,13 @@ namespace BTC_ReconciliationAutomation.Server.Controllers
     {
         private readonly IReconciliationRunRepository _repo;
         private readonly IReconciliationStatsRepository _statsRepo;
+        private readonly IConfigurationRepository _configRepo;
 
-        public ReconciliationController(IReconciliationRunRepository repo, IReconciliationStatsRepository statsRepo)
+        public ReconciliationController(IReconciliationRunRepository repo, IReconciliationStatsRepository statsRepo, IConfigurationRepository configRepo)
         {
             _repo = repo;
             _statsRepo = statsRepo;
+            _configRepo = configRepo;
         }
 
         // Trigger a new run (manual)
@@ -126,11 +128,15 @@ namespace BTC_ReconciliationAutomation.Server.Controllers
                 configuration = config != null ? new
                 {
                     configId = config.CONFIG_ID,
+                    frequency = config.FREQUENCY,
+                    dayOfMonth = config.DAY_OF_MONTH,
+                    runTime = config.RUN_TIME,
                     emailRecipients = config.EMAIL_RECIPIENTS,
-                    scheduleExpression = $"{config.FREQUENCY} on {config.DAY_OF_MONTH} at {config.RUN_TIME}",
+                    defaultFilePath = config.DEFAULT_FILE_PATH,
                     isActive = config.IS_ACTIVE,
                     effectiveFrom = config.EFFECTIVE_FROM,
-                    effectiveTo = config.EFFECTIVE_TO
+                    effectiveTo = config.EFFECTIVE_TO,
+                    addedBy = config.ADDED_BY
                 } : null,
                 // Related data
                 files = files?.Cast<object>().ToList() ?? new List<object>(),
@@ -159,7 +165,7 @@ namespace BTC_ReconciliationAutomation.Server.Controllers
         // Get dashboard statistics
         [HttpGet("dashboard/stats")]
         public async Task<IActionResult> GetDashboardStats()
-        {
+        {   
             var all = await _repo.GetAllAsync();
             var allList = all.ToList();
 
@@ -199,6 +205,44 @@ namespace BTC_ReconciliationAutomation.Server.Controllers
                 triggeredBy = lastRun?.TRIGGERED_BY,
                 deliveryMethod = lastRun?.DELIVERY_METHOD?.DELIVERY_METHOD1,
                 emailStatus = lastRun?.EMAIL_STATUS?.EMAIL_STATUS1
+            });
+        }
+
+        // Get dashboard alerts data
+        [HttpGet("dashboard/alerts")]
+        public async Task<IActionResult> GetDashboardAlerts()
+        {
+            // Active configuration (schedule info)
+            var allConfigs = await _configRepo.GetAllAsync();
+            var activeConfig = allConfigs.FirstOrDefault(c => c.IS_ACTIVE == "Y");
+
+            // Last reconciliation run
+            var allRuns = await _repo.GetAllAsync();
+            var lastRun = allRuns
+                .OrderByDescending(r => r.RUN_DATE)
+                .FirstOrDefault();
+
+            var lastStatus = lastRun?.RUN_STATUS?.RUN_STATUS1;
+            var lastSummary = lastRun?.reconciliation_summaries?.FirstOrDefault();
+            var lastDiscrepancies = lastSummary?.TOTAL_DISCREPANCIES ?? 0;
+
+            return Ok(new
+            {
+                // Schedule alert: only present when active config has a frequency defined
+                scheduleAlert = activeConfig?.FREQUENCY != null ? new
+                {
+                    emailRecipients = activeConfig.EMAIL_RECIPIENTS,
+                    frequency     = activeConfig.FREQUENCY,
+                    dayOfMonth    = activeConfig.DAY_OF_MONTH,
+                    runTime       = activeConfig.RUN_TIME
+                } : null,
+
+                // Last run failed alert
+                lastRunFailed = string.Equals(lastStatus, "FAILED", System.StringComparison.OrdinalIgnoreCase),
+
+                // High discrepancy warning
+                highDiscrepancies = lastDiscrepancies > 100,
+                totalDiscrepancies = lastDiscrepancies
             });
         }
 

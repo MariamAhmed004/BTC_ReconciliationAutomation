@@ -149,9 +149,7 @@ async function loadFileTypes() {
   } catch (e) {
     console.error('Failed to load file types:', e)
     fileTypes.value = [
-      { value: 'XML', label: 'XML' },
-      { value: 'CSV', label: 'CSV' },
-      { value: 'JSON', label: 'JSON' }
+      
     ]
   }
 }
@@ -184,8 +182,8 @@ const filters = computed(() => [
     options: [
       { value: '', label: 'All Types' },
       ...fileTypes.value.map(ft => ({
-        value: ft.value ?? ft.filE_TYPE_NAME ?? ft.FILE_TYPE_NAME,
-        label: ft.label ?? ft.filE_TYPE_NAME ?? ft.FILE_TYPE_NAME
+        value: ft.name,
+        label: ft.name
       }))
     ],
     default: '',

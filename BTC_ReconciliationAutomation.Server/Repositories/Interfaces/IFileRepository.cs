@@ -12,5 +12,6 @@ namespace BTC_ReconciliationAutomation.Server.Repositories.Interfaces
         Task AddAsync(generated_file entity);
         Task UpdateAsync(generated_file entity);
         Task DeleteAsync(object id);
+        Task<IEnumerable<file_type>> GetAllFileTypesAsync();
     }
 }

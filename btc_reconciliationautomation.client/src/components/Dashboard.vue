@@ -50,6 +50,99 @@ const chartData = ref({
 const isLoading = ref(false)
 const error = ref(null)
 
+// Dashboard alerts
+const alertInfo    = ref(null)   // schedule info
+const alertFailed  = ref(false)  // last run failed
+const alertHighDisc = ref({ show: false, count: 0 })
+
+const showInfoAlert    = ref(false)
+const showFailedAlert  = ref(false)
+const showHighDiscAlert = ref(false)
+
+const fetchAlerts = async () => {
+  try {
+    const res = await fetch('/api/reconciliation/dashboard/alerts')
+    if (!res.ok) return
+    const data = await res.json()
+
+    if (data.scheduleAlert) {
+      alertInfo.value = data.scheduleAlert
+      showInfoAlert.value = true
+    }
+
+    if (data.lastRunFailed) {
+      alertFailed.value = true
+      showFailedAlert.value = true
+    }
+
+    if (data.highDiscrepancies) {
+      alertHighDisc.value = { show: true, count: data.totalDiscrepancies }
+      showHighDiscAlert.value = true
+    }
+  } catch (err) {
+    console.error('Error fetching dashboard alerts:', err)
+  }
+}
+
+const formatScheduleLabel = (info) => {
+  if (!info) return ''
+  const freq = (info.frequency ?? '').toUpperCase()
+  if (freq === 'MONTHLY') {
+    const day = info.dayOfMonth ? `on day ${info.dayOfMonth}` : ''
+    const time = info.runTime ? `at ${info.runTime}` : ''
+    return `Monthly ${day} ${time}`.trim()
+  }
+  if (freq === 'DAILY') {
+    const time = info.runTime ? `at ${info.runTime}` : ''
+    return `Daily ${time}`.trim()
+  }
+  if (freq === 'WEEKLY') {
+    const time = info.runTime ? `at ${info.runTime}` : ''
+    return `Weekly ${time}`.trim()
+  }
+  return info.frequency ?? ''
+}
+
+const computeNextRun = (info) => {
+  if (!info) return null
+  const freq = (info.frequency ?? '').toUpperCase()
+
+  // Parse runTime "HH:mm" or "HH:mm:ss"
+  const [hours, minutes] = (info.runTime ?? '00:00').split(':').map(Number)
+
+  const now = new Date()
+
+  let next = null
+
+  if (freq === 'DAILY') {
+    next = new Date(now.getFullYear(), now.getMonth(), now.getDate(), hours, minutes, 0)
+    if (next <= now) next.setDate(next.getDate() + 1)
+  }
+
+  if (freq === 'MONTHLY') {
+    const day = Number(info.dayOfMonth) || 1
+    next = new Date(now.getFullYear(), now.getMonth(), day, hours, minutes, 0)
+    if (next <= now) next = new Date(now.getFullYear(), now.getMonth() + 1, day, hours, minutes, 0)
+  }
+
+  if (freq === 'WEEKLY') {
+    next = new Date(now.getFullYear(), now.getMonth(), now.getDate(), hours, minutes, 0)
+    if (next <= now) next.setDate(next.getDate() + 1)
+    // advance to same weekday next week from now (7 days rolling)
+    next = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 7, hours, minutes, 0)
+  }
+
+  if (!next) return null
+
+  const dayName  = next.toLocaleDateString('en-US', { weekday: 'long' })
+  const dayNum   = next.getDate()
+  const month    = next.toLocaleDateString('en-US', { month: 'long' })
+  const year     = next.getFullYear()
+  const timeStr  = next.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false })
+
+  return `${dayName}, ${dayNum} ${month} ${year} at ${timeStr}`
+}
+
 // Helper function to format dates
 function formatDateForTable(d) {
   if (!d) return ''
@@ -324,6 +417,7 @@ onMounted(() => {
   fetchLiveStats()
   fetchChartData()
   fetchLatestRuns()
+  fetchAlerts()
 })
 </script>
 
@@ -337,6 +431,49 @@ onMounted(() => {
           <div class="text-muted">
             Monitor reconciliation runs, discrepancies, and completion status in one place.
           </div>
+        </div>
+      </div>
+
+      <!-- Dashboard Alerts -->
+      <div class="row mb-3" v-if="showInfoAlert || showFailedAlert || showHighDiscAlert">
+        <div class="col-12">
+
+          <!-- Info: schedule + email recipients -->
+          <div v-if="showInfoAlert && alertInfo" class="alert alert-info alert-dismissible d-flex align-items-start gap-2 mb-2" role="alert">
+            <i class="bi bi-info-circle-fill flex-shrink-0 mt-1"></i>
+            <div>
+              <strong>Scheduled Run Configured</strong><br>
+              The active configuration has an automated schedule: <strong>{{ formatScheduleLabel(alertInfo) }}</strong>.<br>
+              <span v-if="alertInfo.emailRecipients">
+                Email notifications will be sent to: <strong>{{ alertInfo.emailRecipients }}</strong><br>
+              </span>
+              <span v-if="computeNextRun(alertInfo)">
+                Next run will be on: <strong>{{ computeNextRun(alertInfo) }}</strong>
+              </span>
+            </div>
+            <button type="button" class="btn-close ms-auto" aria-label="Close" @click="showInfoAlert = false"></button>
+          </div>
+
+          <!-- Error: last reconciliation failed -->
+          <div v-if="showFailedAlert" class="alert alert-danger alert-dismissible d-flex align-items-start gap-2 mb-2" role="alert">
+            <i class="bi bi-x-circle-fill flex-shrink-0 mt-1"></i>
+            <div>
+              <strong>Last Reconciliation Failed</strong><br>
+              The most recent reconciliation run did not complete successfully. Please review the logs for details.
+            </div>
+            <button type="button" class="btn-close ms-auto" aria-label="Close" @click="showFailedAlert = false"></button>
+          </div>
+
+          <!-- Warning: high discrepancy count -->
+          <div v-if="showHighDiscAlert" class="alert alert-warning alert-dismissible d-flex align-items-start gap-2 mb-2" role="alert">
+            <i class="bi bi-exclamation-triangle-fill flex-shrink-0 mt-1"></i>
+            <div>
+              <strong>High Discrepancy Count Detected</strong><br>
+              The last reconciliation detected <strong>{{ alertHighDisc.count }}</strong> discrepancies. A reconciliation action should be considered.
+            </div>
+            <button type="button" class="btn-close ms-auto" aria-label="Close" @click="showHighDiscAlert = false"></button>
+          </div>
+
         </div>
       </div>
 

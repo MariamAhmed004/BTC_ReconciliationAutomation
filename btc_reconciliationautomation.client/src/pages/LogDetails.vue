@@ -10,15 +10,16 @@ const id = route.params.id
 const details = ref({
   status: 'N/A',
   runAt: null,
-  relatedConfigurations: '',
   triggeredBy: '',
   recordsProcessed: 0,
   totalDiscrepancies: 0,
   addedToRowB: 0,
-  deactivatedInRowB: 0,
+  missingInCustomer: 0,
   matchedPackages: 0,
   errorMessage: null
 })
+
+const relatedConfig = ref(null)
 
 const files = ref([])
 const logs = ref([])
@@ -48,6 +49,9 @@ const statusDisplay = computed(() => {
   return { text: status || 'N/A', class: 'text-muted' }
 })
 
+// A config is auto-triggered when a schedule frequency is defined
+const isAutoTriggered = computed(() => !!relatedConfig.value?.frequency)
+
 async function loadDetails() {
   isLoading.value = true
   error.value = null
@@ -70,16 +74,11 @@ async function loadDetails() {
     details.value.recordsProcessed = data.recordsProcessed || 0
     details.value.totalDiscrepancies = data.totalDiscrepancies || 0
     details.value.matchedPackages = data.mismatchCount || 0
-    details.value.addedToRowB = data.missingInBilling || 0
-    details.value.deactivatedInRowB = 0 // Removed from backend
+    details.value.addedToRowB       = data.missingInBilling  || 0
+    details.value.missingInCustomer  = data.missingInCustomer || 0
 
     // Map configuration
-    if (data.configuration) {
-      const config = data.configuration
-      details.value.relatedConfigurations = `Schedule: ${config.scheduleExpression || 'N/A'}, Email: ${config.emailRecipients || 'N/A'}`
-    } else {
-      details.value.relatedConfigurations = 'No configuration'
-    }
+    relatedConfig.value = data.configuration ?? null
 
     // Map files
     files.value = (data.files || []).map(f => ({
@@ -167,65 +166,215 @@ const logsColumns = [
               <div class="detail-label">Triggered by</div>
               <div class="detail-value">{{ details.triggeredBy }}</div>
             </div>
-            <div class="detail-row">
-              <div class="detail-label">Related configuration</div>
-              <div class="detail-value">{{ details.relatedConfigurations }}</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Related Configuration -->
+      <div class="card border-0 shadow-sm mb-4">
+        <div class="card-body">
+          <h6 class="fw-semibold text-muted mb-3">
+            <i class="bi bi-sliders me-2"></i>Related Configuration
+          </h6>
+
+          <div v-if="!relatedConfig" class="text-muted small">No configuration linked to this run.</div>
+
+          <div v-else>
+            <!-- Auto-triggered layout -->
+            <div v-if="isAutoTriggered" class="row g-3">
+              <div class="col-md-4">
+                <div class="detail-card">
+                  <div class="detail-card-label">Config ID</div>
+                  <div class="detail-card-value">#{{ relatedConfig.configId }}</div>
+                </div>
+              </div>
+              <div class="col-md-4">
+                <div class="detail-card">
+                  <div class="detail-card-label">Schedule</div>
+                  <div class="detail-card-value">
+                    {{ relatedConfig.frequency || 'N/A' }}
+                    <span v-if="relatedConfig.dayOfMonth"> — Day {{ relatedConfig.dayOfMonth }}</span>
+                    <span v-if="relatedConfig.runTime"> at {{ relatedConfig.runTime }}</span>
+                  </div>
+                </div>
+              </div>
+              <div class="col-md-4">
+                <div class="detail-card">
+                  <div class="detail-card-label">Email Delivery</div>
+                  <div class="detail-card-value">{{ relatedConfig.emailRecipients || 'N/A' }}</div>
+                </div>
+              </div>
+              <div class="col-md-4">
+                <div class="detail-card">
+                  <div class="detail-card-label">Default Directory</div>
+                  <div class="detail-card-value">{{ relatedConfig.defaultFilePath || 'N/A' }}</div>
+                </div>
+              </div>
+              <div class="col-md-4">
+                <div class="detail-card">
+                  <div class="detail-card-label">Effective From</div>
+                  <div class="detail-card-value">{{ formatDate(relatedConfig.effectiveFrom) }}</div>
+                </div>
+              </div>
+              <div class="col-md-4">
+                <div class="detail-card">
+                  <div class="detail-card-label">Status</div>
+                  <div :class="['detail-card-value fw-semibold', relatedConfig.isActive === 'Y' ? 'text-success' : 'text-secondary']">
+                    {{ relatedConfig.isActive === 'Y' ? 'Active' : 'Inactive' }}
+                  </div>
+                </div>
+              </div>
+              <div class="col-md-4">
+                <div class="detail-card">
+                  <div class="detail-card-label">Effective To</div>
+                  <div class="detail-card-value">{{ formatDate(relatedConfig.effectiveTo) }}</div>
+                </div>
+              </div>
+              <div class="col-md-4">
+                <div class="detail-card">
+                  <div class="detail-card-label">Added By</div>
+                  <div class="detail-card-value">{{ relatedConfig.addedBy || 'N/A' }}</div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Manual (not auto-triggered) layout -->
+            <div v-else class="row g-3">
+              <div class="col-md-4">
+                <div class="detail-card">
+                  <div class="detail-card-label">Config ID</div>
+                  <div class="detail-card-value">#{{ relatedConfig.configId }}</div>
+                </div>
+              </div>
+              <div class="col-md-4">
+                <div class="detail-card">
+                  <div class="detail-card-label">Default Directory</div>
+                  <div class="detail-card-value">{{ relatedConfig.defaultFilePath || 'N/A' }}</div>
+                </div>
+              </div>
+              <div class="col-md-4">
+                <div class="detail-card">
+                  <div class="detail-card-label">Effective From</div>
+                  <div class="detail-card-value">{{ formatDate(relatedConfig.effectiveFrom) }}</div>
+                </div>
+              </div>
+              <div class="col-md-4">
+                <div class="detail-card">
+                  <div class="detail-card-label">Status</div>
+                  <div :class="['detail-card-value fw-semibold', relatedConfig.isActive === 'Y' ? 'text-success' : 'text-secondary']">
+                    {{ relatedConfig.isActive === 'Y' ? 'Active' : 'Inactive' }}
+                  </div>
+                </div>
+              </div>
+              <div class="col-md-4">
+                <div class="detail-card">
+                  <div class="detail-card-label">Effective To</div>
+                  <div class="detail-card-value">{{ formatDate(relatedConfig.effectiveTo) }}</div>
+                </div>
+              </div>
+              <div class="col-md-4">
+                <div class="detail-card">
+                  <div class="detail-card-label">Added By</div>
+                  <div class="detail-card-value">{{ relatedConfig.addedBy || 'N/A' }}</div>
+                </div>
+              </div>
             </div>
           </div>
         </div>
       </div>
 
-      <hr />
-      <h5 class="text-center">Process Summary</h5>
-
-      <div class="row text-center my-3">
-        <div class="col-6 col-md-4 mb-3">
-          <div class="fw-semibold">Records Processed</div>
-          <div class="fs-5">{{ details.recordsProcessed }}</div>
-        </div>
-        <div class="col-6 col-md-4 mb-3">
-          <div class="fw-semibold">Total Discrepancies</div>
-          <div class="fs-5 text-danger">{{ details.totalDiscrepancies }}</div>
-        </div>
-        <div class="col-6 col-md-4 mb-3">
-          <div class="fw-semibold">Matched Packages</div>
-          <div class="fs-5">{{ details.matchedPackages }}</div>
-        </div>
-
-        <div class="col-6 col-md-4 mb-3">
-          <div class="fw-semibold">Added to ROWB</div>
-          <div class="fs-5">{{ details.addedToRowB }}</div>
-        </div>
-        <div class="col-6 col-md-4 mb-3">
-          <div class="fw-semibold">Deactivated in ROWB</div>
-          <div class="fs-5">{{ details.deactivatedInRowB }}</div>
-        </div>
-      </div>
-
-      <hr />
-      <h5 class="text-center">Related Files</h5>
-      <div v-if="files.length === 0" class="text-center text-muted my-3">
-        No files generated for this run
-      </div>
-      <div v-else class="d-flex justify-content-center align-items-start gap-4 my-3 flex-wrap">
-        <div v-for="(f, idx) in files" :key="idx" class="text-center file-block">
-          <a :href="f.url" class="text-decoration-none text-dark" :title="`Created: ${f.createdAt}`">
-            <div class="file-icon mb-2">XLSX</div>
-            <div class="small">{{ f.name }}</div>
-            <div v-if="f.deliveryMethod" class="small text-muted">{{ f.deliveryMethod }}</div>
-            <div v-if="f.emailStatus" class="small text-muted">{{ f.emailStatus }}</div>
-          </a>
+      <!-- Process Summary -->
+      <div class="card border-0 shadow-sm mb-4">
+        <div class="card-body">
+          <h6 class="fw-semibold text-muted mb-3">
+            <i class="bi bi-bar-chart-fill me-2"></i>Process Summary
+          </h6>
+          <div class="row g-3">
+            <div class="col-md-4">
+              <div class="detail-card">
+                <div class="detail-card-label">Records Processed</div>
+                <div class="detail-card-value">{{ details.recordsProcessed }}</div>
+              </div>
+            </div>
+            <div class="col-md-4">
+              <div class="detail-card">
+                <div class="detail-card-label">Total Discrepancies</div>
+                <div class="detail-card-value text-danger">{{ details.totalDiscrepancies }}</div>
+              </div>
+            </div>
+            <div class="col-md-4">
+              <div class="detail-card">
+                <div class="detail-card-label">Matched Packages</div>
+                <div class="detail-card-value">{{ details.matchedPackages }}</div>
+              </div>
+            </div>
+            <div class="col-md-4">
+              <div class="detail-card">
+                <div class="detail-card-label">Added to ROWB</div>
+                <div class="detail-card-value">{{ details.addedToRowB }}</div>
+              </div>
+            </div>
+            <div class="col-md-4">
+              <div class="detail-card">
+                <div class="detail-card-label">Missing in Customer</div>
+                <div class="detail-card-value">{{ details.missingInCustomer }}</div>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
 
-      <hr />
-      <h5 class="text-center">Related System Logs</h5>
-
-      <div v-if="logs.length === 0" class="text-center text-muted my-3">
-        No logs available for this run
+      <!-- Related Files -->
+      <div class="card border-0 shadow-sm mb-4">
+        <div class="card-body">
+          <h6 class="fw-semibold text-muted mb-3">
+            <i class="bi bi-file-earmark-fill me-2"></i>Related Files
+          </h6>
+          <div v-if="files.length === 0" class="text-muted small">
+            No files generated for this run
+          </div>
+          <div v-else class="d-flex justify-content-center align-items-start gap-4 mt-2 flex-wrap">
+            <div v-for="(f, idx) in files" :key="idx" class="text-center file-block">
+              <a :href="f.url" class="text-decoration-none text-dark" :title="`Created: ${f.createdAt}`">
+                <div class="file-icon mb-2">XLSX</div>
+                <div class="small">{{ f.name }}</div>
+                <div v-if="f.deliveryMethod" class="small text-muted">{{ f.deliveryMethod }}</div>
+                <div v-if="f.emailStatus" class="small text-muted">{{ f.emailStatus }}</div>
+              </a>
+            </div>
+          </div>
+        </div>
       </div>
-      <div v-else class="mt-3">
-        <BaseTable :columns="logsColumns" :items="logs" :showSearch="false" :showPagination="false" />
+
+      <!-- Related System Logs -->
+      <div class="card border-0 shadow-sm mb-4">
+        <div class="card-body">
+          <h6 class="fw-semibold text-muted mb-3">
+            <i class="bi bi-journal-text me-2"></i>Related System Logs
+          </h6>
+          <div v-if="logs.length === 0" class="text-muted small">
+            No logs available for this run
+          </div>
+          <div v-else class="mt-2">
+            <BaseTable :columns="logsColumns" :items="logs" :showSearch="false" :showPagination="false">
+              <template #logLevel="{ item }">
+                <span
+                  v-if="item.logLevel"
+                  :class="[
+                    'badge text-white',
+                    item.logLevel.toUpperCase() === 'ERROR'   ? 'bg-danger' :
+                    item.logLevel.toUpperCase() === 'WARNING' ? 'bg-warning' :
+                    item.logLevel.toUpperCase() === 'INFO'    ? 'bg-info' :
+                    'bg-secondary'
+                  ]"
+                >
+                  {{ item.logLevel }}
+                </span>
+                <span v-else class="text-muted">-</span>
+              </template>
+            </BaseTable>
+          </div>
+        </div>
       </div>
     </div>
   </div>
@@ -258,6 +407,28 @@ const logsColumns = [
   flex: 1;
   min-width: 0;
   overflow-wrap: anywhere;
+}
+
+.detail-card {
+  background: #f8f9fa;
+  border-radius: 8px;
+  padding: 0.85rem 1rem;
+}
+
+.detail-card-label {
+  font-size: 0.78rem;
+  color: #6c757d;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  margin-bottom: 0.3rem;
+}
+
+.detail-card-value {
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: #212529;
+  word-break: break-all;
 }
 
 .file-icon {

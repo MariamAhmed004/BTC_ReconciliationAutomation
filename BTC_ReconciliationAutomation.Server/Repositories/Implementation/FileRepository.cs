@@ -72,5 +72,12 @@ namespace BTC_ReconciliationAutomation.Server.Repositories.Implementation
             var e = await _db.generated_files.FindAsync(id);
             if (e != null) { _db.generated_files.Remove(e); await _db.SaveChangesAsync(); }
         }
+
+        public async Task<IEnumerable<file_type>> GetAllFileTypesAsync()
+        {
+            return await _db.file_types
+                .AsNoTracking()
+                .ToListAsync();
+        }
     }
 }

@@ -1,3 +1,4 @@
+using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
 using BTC_ReconciliationAutomation.Server.Repositories.Interfaces;
@@ -52,6 +53,18 @@ namespace BTC_ReconciliationAutomation.Server.Controllers
             if (!typeProvider.TryGetContentType(path, out var contentType)) contentType = "application/octet-stream";
             var stream = System.IO.File.OpenRead(path);
             return File(stream, contentType, System.IO.Path.GetFileName(path));
+        }
+
+        // Get all file types (for filter dropdowns)
+        [HttpGet("types")]
+        public async Task<IActionResult> GetFileTypes()
+        {
+            var types = await _repo.GetAllFileTypesAsync();
+            return Ok(types.Select(t => new
+            {
+                id   = t.FILE_TYPE_ID,
+                name = t.FILE_TYPE_NAME
+            }));
         }
 
         // Trigger email delivery (placeholder)
