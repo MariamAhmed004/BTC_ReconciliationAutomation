@@ -59,7 +59,7 @@ async function signUp() {
         <div class="row justify-content-center">
           <div class="col-md-6 col-lg-5">
             <div class="auth-card p-4">
-              <h2 class="fw-bold text-center">SIGN UP</h2>
+              <h2 class="fw-bold text-center">Sign Up</h2>
               <p class="text-muted text-center mb-4">Create an account to access the reconciliation dashboard</p>
 
               <div v-if="error" class="alert alert-danger py-2">{{ error }}</div>
@@ -103,7 +103,7 @@ async function signUp() {
 
                 <div class="d-grid">
                   <button type="submit" class="btn btn-dark btn-lg" :disabled="loading">
-                    {{ loading ? 'Creating account…' : 'SIGN UP' }}
+                    {{ loading ? 'Creating account…' : 'Sign Up' }}
                   </button>
                 </div>
               </form>

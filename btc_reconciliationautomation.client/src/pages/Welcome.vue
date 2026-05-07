@@ -8,19 +8,12 @@
       <img src="/src/assets/logo.png" alt="Logo" width="140" />
     </header>
 
-    <main class="flex-fill d-flex align-items-center">
-      <div class="container">
-        <div class="row align-items-center">
-          <div class="col-md-6 text-center d-none d-md-block">
-            <img src="/src/assets/robot.png" alt="Robot" class="img-fluid" style="max-height:400px;" />
-          </div>
-          <div class="col-md-6">
-            <h1 class="fw-bold">Welcome</h1>
-            <p class="lead text-muted">Access the reconciliation dashboard</p>
-            <p class="text-muted">This website provides you with details regarding automated processes</p>
-            <router-link to="/login" class="btn btn-dark btn-lg mt-3">Get Started</router-link>
-          </div>
-        </div>
+    <main class="flex-fill d-flex align-items-center justify-content-center">
+      <div class="container text-center">
+        <h1 class="fw-bold display-4">BTC Reconciliation Automation</h1>
+        <p class="lead text-muted mt-3">Streamline and monitor your automated reconciliation processes in one place</p>
+        <p class="text-muted">Gain full visibility into reconciliation results, discrepancies, and process history</p>
+        <router-link to="/login" class="btn btn-dark btn-lg mt-4">Get Started</router-link>
       </div>
     </main>
 
