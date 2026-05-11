@@ -1,3 +1,5 @@
+using System.Collections.Generic;
+using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
 using BTC_ReconciliationAutomation.Server.Repositories.Interfaces;
@@ -10,10 +12,19 @@ namespace BTC_ReconciliationAutomation.Server.Controllers
     public class FileController : ControllerBase
     {
         private readonly IFileRepository _repo;
+        private readonly ISystemLogRepository _logRepo;
 
-        public FileController(IFileRepository repo)
+        public FileController(IFileRepository repo, ISystemLogRepository logRepo)
         {
             _repo = repo;
+            _logRepo = logRepo;
+        }
+
+        public class DeleteRangeRequest
+        {
+            public System.DateTime? From { get; set; }
+            public System.DateTime? To { get; set; }
+            public int? Days { get; set; }
         }
 
         // Get latest files with related data
@@ -63,6 +74,72 @@ namespace BTC_ReconciliationAutomation.Server.Controllers
             if (file == null) return NotFound();
             // TODO: integrate with email service
             return Accepted(new { message = "Email queued (placeholder)" });
+        }
+
+        // Delete file records by date range or number of days
+        [HttpPost("delete/range")]
+        public async Task<IActionResult> DeleteRange([FromBody] DeleteRangeRequest req)
+        {
+            var all = await _repo.GetAllAsync();
+
+            IEnumerable<BTC_ReconciliationAutomation.Server.Models.generated_file> filtered;
+
+            if (req?.Days != null && req.Days > 0)
+            {
+                var cutoff = System.DateTime.UtcNow.AddDays(-req.Days.Value);
+                filtered = all.Where(f => f.CREATED_AT < cutoff).ToList();
+            }
+            else
+            {
+                var to = req?.To ?? System.DateTime.UtcNow;
+                var from = req?.From ?? System.DateTime.MinValue;
+                filtered = all.Where(f => f.CREATED_AT >= from && f.CREATED_AT <= to).ToList();
+            }
+
+            var count = 0;
+            foreach (var f in filtered)
+            {
+                await _repo.DeleteAsync(f.FILE_ID);
+                count++;
+            }
+
+            var message = req?.Days != null && req.Days > 0
+                ? $"Deleted {count} file record(s) older than {req.Days} days"
+                : $"Deleted {count} file record(s) (range: {req?.From:u} - {req?.To:u})";
+
+            var audit = new BTC_ReconciliationAutomation.Server.Models.system_log
+            {
+                LOG_MESSAGE = message,
+                CREATED_AT = System.DateTime.UtcNow,
+                LOG_LEVEL_ID = 1
+            };
+            await _logRepo.AddAsync(audit);
+
+            return Ok(new { deleted = count });
+        }
+
+        // Delete all file records
+        [HttpPost("delete/all")]
+        public async Task<IActionResult> DeleteAll()
+        {
+            var all = await _repo.GetAllAsync();
+            var list = all.ToList();
+            var count = 0;
+            foreach (var f in list)
+            {
+                await _repo.DeleteAsync(f.FILE_ID);
+                count++;
+            }
+
+            var audit = new BTC_ReconciliationAutomation.Server.Models.system_log
+            {
+                LOG_MESSAGE = $"Deleted all file records ({count} entries)",
+                CREATED_AT = System.DateTime.UtcNow,
+                LOG_LEVEL_ID = 1
+            };
+            await _logRepo.AddAsync(audit);
+
+            return Ok(new { deleted = count });
         }
     }
 }
