@@ -3,6 +3,7 @@ import { ref, onMounted, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import PageHeader from '@/components/common/PageHeader.vue'
 import BaseTable from '../components/common/BaseTable.vue'
+import BaseModal from '../components/common/BaseModal.vue'
 
 const router = useRouter()
 
@@ -18,6 +19,106 @@ const columns = [
 const items = ref([])
 const fileTypes = ref([])
 const loading = ref(false)
+
+const showDeleteModal = ref(false)
+const deleteMode = ref('range') // 'range' or 'all'
+const rangeMode = ref('days') // 'days' or 'dates'
+const deleteFrom = ref('')
+const deleteTo = ref('')
+const deleteDays = ref(30)
+
+const showConfirmModal = ref(false)
+const confirmModalMessage = ref('')
+const pendingAction = ref(null)
+
+const showFeedbackModal = ref(false)
+const feedbackModalTitle = ref('')
+const feedbackModalMessage = ref('')
+const feedbackModalVariant = ref('success') // 'success' or 'danger'
+
+function showConfirm(message, action) {
+  confirmModalMessage.value = message
+  pendingAction.value = action
+  showConfirmModal.value = true
+}
+
+function handleConfirm() {
+  showConfirmModal.value = false
+  if (pendingAction.value) pendingAction.value()
+  pendingAction.value = null
+}
+
+function showFeedback(title, message, variant = 'success') {
+  feedbackModalTitle.value = title
+  feedbackModalMessage.value = message
+  feedbackModalVariant.value = variant
+  showFeedbackModal.value = true
+}
+
+async function performDeleteRange() {
+  const payload = {}
+  if (rangeMode.value === 'days' && deleteDays.value) {
+    payload.days = Number(deleteDays.value)
+  } else {
+    payload.from = deleteFrom.value ? new Date(deleteFrom.value).toISOString() : null
+    payload.to = deleteTo.value ? new Date(deleteTo.value).toISOString() : null
+  }
+
+  showConfirm('Proceed with file clearance? Cleared file records are permanently removed and cannot be recovered.', async () => {
+    try {
+      const res = await fetch('/api/File/delete/range', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      })
+      if (!res.ok) throw new Error('Delete range request failed')
+      const data = await res.json()
+      showDeleteModal.value = false
+      showFeedback('Files Cleared', `Successfully deleted ${data.deleted} file record(s).`, 'success')
+      await loadFiles()
+    } catch (err) {
+      console.error('Delete range failed', err)
+      showFeedback('Error', 'Failed to delete file records. Please try again.', 'danger')
+    }
+  })
+}
+
+async function performDeleteAll() {
+  showConfirm('Are you sure you want to delete ALL file records? This action cannot be undone.', async () => {
+    try {
+      const res = await fetch('/api/File/delete/all', { method: 'POST' })
+      if (!res.ok) throw new Error('Delete all request failed')
+      const data = await res.json()
+      showDeleteModal.value = false
+      showFeedback('Files Cleared', `Successfully deleted all ${data.deleted} file record(s).`, 'success')
+      await loadFiles()
+    } catch (err) {
+      console.error('Delete all failed', err)
+      showFeedback('Error', 'Failed to delete file records. Please try again.', 'danger')
+    }
+  })
+}
+
+const modalButtons = computed(() => {
+  if (deleteMode.value === 'all') {
+    return [
+      { text: 'Cancel', variant: 'secondary', action: 'close' },
+      { text: 'Delete All', variant: 'danger', action: 'deleteAll' }
+    ]
+  }
+  return [
+    { text: 'Cancel', variant: 'secondary', action: 'close' },
+    { text: 'Delete Selected', variant: 'danger', action: 'deleteRange' }
+  ]
+})
+
+function handleModalAction(action) {
+  if (action === 'deleteAll') {
+    performDeleteAll()
+  } else if (action === 'deleteRange') {
+    performDeleteRange()
+  }
+}
 
 function getFileTypeBadgeClass(fileType) {
   const t = String(fileType || '').trim().toUpperCase()
@@ -278,12 +379,120 @@ onMounted(async () => {
     <PageHeader
       title="Files Repository"
       subtitle="Following are the details of the reconciliation process runs :"
-      instruction="Click on the row to view the log details"
+      instruction="Use Request File Clearance to permanently remove file records (by date range or all). Use Run Details to navigate to the parent execution."
     >
       <template #icon>
         <i class="bi bi-folder-fill" style="font-size: 2rem; color: #6c757d;"></i>
       </template>
     </PageHeader>
+
+    <div class="mb-3 d-flex justify-content-end">
+      <button class="btn btn-sm btn-danger" @click="showDeleteModal = true">Request File Clearance</button>
+    </div>
+
+    <BaseModal
+      :show="showDeleteModal"
+      title="Delete Files"
+      :buttons="modalButtons"
+      size="lg"
+      @close="showDeleteModal = false"
+      @action="handleModalAction"
+    >
+      <div class="delete-modal-content">
+        <p class="text-muted small mb-3">
+          Choose how you want to clear file records. Deleted records are permanently removed and cannot be recovered.
+        </p>
+
+        <div class="mb-3">
+          <label class="form-label fw-semibold">Deletion Mode</label>
+          <select v-model="deleteMode" class="form-select">
+            <option value="range">Delete by time period</option>
+            <option value="all">Delete all records</option>
+          </select>
+        </div>
+
+        <div v-if="deleteMode === 'range'" class="range-options">
+          <div class="mb-3">
+            <label class="form-label fw-semibold">Select Period Type</label>
+            <div class="form-check">
+              <input
+                class="form-check-input"
+                type="radio"
+                name="rangeMode"
+                id="fileRangeModeDate"
+                value="dates"
+                v-model="rangeMode"
+              />
+              <label class="form-check-label" for="fileRangeModeDate">
+                Specify a date range
+              </label>
+            </div>
+            <div class="form-check">
+              <input
+                class="form-check-input"
+                type="radio"
+                name="rangeMode"
+                id="fileRangeModeDays"
+                value="days"
+                v-model="rangeMode"
+              />
+              <label class="form-check-label" for="fileRangeModeDays">
+                Delete records older than N days
+              </label>
+            </div>
+          </div>
+
+          <div v-if="rangeMode === 'dates'" class="date-inputs">
+            <div class="row g-2">
+              <div class="col-md-6">
+                <label class="form-label">From</label>
+                <input v-model="deleteFrom" type="date" class="form-control" />
+              </div>
+              <div class="col-md-6">
+                <label class="form-label">To</label>
+                <input v-model="deleteTo" type="date" class="form-control" />
+              </div>
+            </div>
+          </div>
+
+          <div v-else class="days-input">
+            <label class="form-label">Days</label>
+            <input v-model.number="deleteDays" type="number" min="1" class="form-control" />
+            <div class="form-text">Deletes file records older than the specified number of days.</div>
+          </div>
+        </div>
+      </div>
+    </BaseModal>
+
+    <BaseModal
+      :show="showConfirmModal"
+      title="Confirm"
+      :buttons="[
+        { text: 'Cancel', variant: 'secondary', action: 'close' },
+        { text: 'Confirm', variant: 'danger', action: 'confirm' }
+      ]"
+      @close="showConfirmModal = false"
+      @action="(a) => { if (a === 'confirm') handleConfirm() }"
+    >
+      <p class="mb-0">{{ confirmModalMessage }}</p>
+    </BaseModal>
+
+    <BaseModal
+      :show="showFeedbackModal"
+      :title="feedbackModalTitle"
+      :buttons="[{ text: 'Close', variant: 'secondary', action: 'close' }]"
+      @close="showFeedbackModal = false"
+    >
+      <div class="d-flex align-items-start gap-3">
+        <i
+          :class="[
+            'bi fs-4 flex-shrink-0',
+            feedbackModalVariant === 'success' ? 'bi-check-circle-fill text-success' : 'bi-x-circle-fill text-danger'
+          ]"
+        ></i>
+        <p class="mb-0">{{ feedbackModalMessage }}</p>
+      </div>
+    </BaseModal>
 
     <!-- Loading State -->
     <div v-if="loading" class="text-center py-5">
@@ -371,6 +580,34 @@ onMounted(async () => {
 
 .fw-medium {
   font-weight: 500;
+}
+
+.delete-modal-content {
+  max-height: 60vh;
+  overflow-y: auto;
+}
+
+.range-options {
+  background-color: #f8f9fa;
+  padding: 1rem;
+  border-radius: 0.375rem;
+  border: 1px solid #dee2e6;
+}
+
+.date-inputs,
+.days-input {
+  margin-top: 1rem;
+  padding-top: 1rem;
+  border-top: 1px solid #dee2e6;
+}
+
+.form-check {
+  padding: 0.5rem 0;
+}
+
+.form-check-input:checked {
+  background-color: #0d6efd;
+  border-color: #0d6efd;
 }
 
 .filetype-badge {
