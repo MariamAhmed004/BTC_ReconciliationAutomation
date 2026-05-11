@@ -114,6 +114,31 @@ const logsColumns = [
   { key: 'message', title: 'Message' },
   { key: 'createdAt', title: 'Created At', width: '180px' }
 ]
+
+const aiSentences = ref([])
+const aiLoading = ref(false)
+const aiError = ref(null)
+
+async function loadAiSummary() {
+  aiSentences.value = []
+  aiError.value = null
+  aiLoading.value = true
+  try {
+    const res = await fetch(`/api/AiSummary/summary/${id}`)
+    if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`)
+    const data = await res.json()
+    if (data.debug?.error) {
+      aiError.value = data.debug.error
+    } else {
+      aiSentences.value = Array.isArray(data.sentences) ? data.sentences : []
+    }
+  } catch (err) {
+    aiError.value = err.message
+    console.error('Failed to load AI summary', err)
+  } finally {
+    aiLoading.value = false
+  }
+}
 </script>
 
 <template>
@@ -376,6 +401,45 @@ const logsColumns = [
           </div>
         </div>
       </div>
+
+      <!-- AI Summary -->
+      <div class="card border-0 shadow-sm mb-4">
+        <div class="card-body">
+          <div class="d-flex align-items-center justify-content-between mb-3">
+            <h6 class="fw-semibold text-muted mb-0">
+              <i class="bi bi-stars me-2"></i>AI Summary
+            </h6>
+            <button
+              class="btn btn-sm btn-outline-primary"
+              :disabled="aiLoading"
+              @click="loadAiSummary"
+            >
+              <span v-if="aiLoading" class="spinner-border spinner-border-sm me-1" role="status"></span>
+              <i v-else class="bi bi-arrow-clockwise me-1"></i>
+              {{ aiLoading ? 'Generating…' : (aiSentences.length ? 'Regenerate' : 'Generate AI Summary') }}
+            </button>
+          </div>
+
+          <div v-if="aiError" class="alert alert-danger mb-0 small">
+            <strong>Error:</strong> {{ aiError }}
+          </div>
+
+          <div v-else-if="aiSentences.length" class="ai-summary-block">
+            <div
+              v-for="(sentence, idx) in aiSentences"
+              :key="idx"
+              class="ai-sentence"
+            >
+              <span class="ai-sentence-number">{{ idx + 1 }}</span>
+              <span>{{ sentence }}</span>
+            </div>
+          </div>
+
+          <p v-else class="text-muted small mb-0">
+            Click the button above to generate an AI-powered summary for this run.
+          </p>
+        </div>
+      </div>
     </div>
   </div>
 </template>
@@ -443,4 +507,38 @@ const logsColumns = [
   background: #fff;
 }
 .file-block a:hover .file-icon { transform: translateY(-4px); }
+
+.ai-summary-block {
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+}
+
+.ai-sentence {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+  background: #f8f9fa;
+  border-left: 3px solid #0d6efd;
+  border-radius: 6px;
+  padding: 0.7rem 1rem;
+  font-size: 0.93rem;
+  color: #212529;
+  line-height: 1.6;
+}
+
+.ai-sentence-number {
+  flex-shrink: 0;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: #0d6efd;
+  color: #fff;
+  font-size: 0.72rem;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-top: 1px;
+}
 </style>

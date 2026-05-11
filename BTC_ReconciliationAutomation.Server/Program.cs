@@ -1,5 +1,6 @@
 using System.Diagnostics;
 using System.Linq;
+using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Hosting.Server.Features;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.Extensions.DependencyInjection;
@@ -8,6 +9,10 @@ using Microsoft.EntityFrameworkCore;
 using BTC_ReconciliationAutomation.Server.Identity;
 
 var builder = WebApplication.CreateBuilder(args);
+
+// Disable hosting startup assemblies (e.g., SpaProxy) even if they are set via environment
+// variables outside of launchSettings.json.
+builder.WebHost.UseSetting(WebHostDefaults.PreventHostingStartupKey, "true");
 
 // Add services to the container.
 
@@ -40,6 +45,12 @@ builder.Services.AddScoped<BTC_ReconciliationAutomation.Server.Repositories.Inte
 builder.Services.AddScoped<BTC_ReconciliationAutomation.Server.Repositories.Interfaces.ISystemLogRepository, BTC_ReconciliationAutomation.Server.Repositories.Implementation.SystemLogRepository>();
 builder.Services.AddScoped<BTC_ReconciliationAutomation.Server.Repositories.Interfaces.IConfigurationRepository, BTC_ReconciliationAutomation.Server.Repositories.Implementation.ConfigurationRepository>();
 builder.Services.AddScoped<BTC_ReconciliationAutomation.Server.Repositories.Interfaces.IReconciliationStatsRepository, BTC_ReconciliationAutomation.Server.Repositories.Implementation.ReconciliationStatsRepository>();
+
+builder.Services.AddHttpClient("Groq")
+    .ConfigurePrimaryHttpMessageHandler(() => new HttpClientHandler
+    {
+        UseProxy = false
+    });
 // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
@@ -86,7 +97,12 @@ if (app.Environment.IsDevelopment())
     }
 }
 
-app.UseHttpsRedirection();
+// Avoid forcing HTTPS in Development so local tooling/proxies can target http://localhost
+// without being redirected to https://localhost (common source of dev-certs issues).
+if (!app.Environment.IsDevelopment())
+{
+    app.UseHttpsRedirection();
+}
 
 app.UseAuthentication();
 app.UseAuthorization();
