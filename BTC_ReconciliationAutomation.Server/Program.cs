@@ -1,9 +1,11 @@
 using System.Diagnostics;
 using System.Linq;
 using Microsoft.AspNetCore.Hosting.Server.Features;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.Extensions.DependencyInjection;
 using System.Text.Json.Serialization;
 using Microsoft.EntityFrameworkCore;
+using BTC_ReconciliationAutomation.Server.Identity;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -12,9 +14,24 @@ var builder = WebApplication.CreateBuilder(args);
 // configure controllers and JSON options to avoid object cycles when EF navigation properties reference each other
 builder.Services.AddControllers()
     .AddJsonOptions(o => o.JsonSerializerOptions.ReferenceHandler = ReferenceHandler.IgnoreCycles);
-// register DbContext
+// register main DbContext
 builder.Services.AddDbContext<BTC_ReconciliationAutomation.Server.Models.OracleDbContext>(opts =>
     opts.UseOracle(builder.Configuration.GetConnectionString("OracleDb")));
+
+// register Identity DbContext (same Oracle DB, separate context)
+builder.Services.AddDbContext<AppIdentityDbContext>(opts =>
+    opts.UseOracle(builder.Configuration.GetConnectionString("OracleDb")));
+
+// configure ASP.NET Core Identity (cookie-based auth — no JWT needed)
+builder.Services.AddIdentity<ApplicationUser, IdentityRole>(options =>
+{
+    options.Password.RequireDigit = true;
+    options.Password.RequiredLength = 8;
+    options.Password.RequireNonAlphanumeric = false;
+    options.Password.RequireUppercase = false;
+})
+.AddEntityFrameworkStores<AppIdentityDbContext>()
+.AddDefaultTokenProviders();
 
 // register repositories
 builder.Services.AddScoped<BTC_ReconciliationAutomation.Server.Repositories.Interfaces.IReconciliationRunRepository, BTC_ReconciliationAutomation.Server.Repositories.Implementation.ReconciliationRunRepository>();
@@ -71,10 +88,17 @@ if (app.Environment.IsDevelopment())
 
 app.UseHttpsRedirection();
 
+app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapControllers();
 
 app.MapFallbackToFile("/index.html");
+
+// seed the default admin user
+using (var scope = app.Services.CreateScope())
+{
+    await IdentitySeeder.SeedAsync(scope.ServiceProvider);
+}
 
 app.Run();

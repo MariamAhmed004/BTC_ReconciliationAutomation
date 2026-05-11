@@ -13,8 +13,8 @@ const LogDetails = () => import('@/pages/LogDetails.vue')
 const ConfigurationDetails = () => import('@/pages/ConfigurationDetails.vue')
 
 const routes = [
-  { path: '/', name: 'Dashboard', component: Dashboard },
-  { path: '/welcome', name: 'Welcome', component: Welcome, meta: { hideNav: true } },
+  { path: '/', name: 'Welcome', component: Welcome, meta: { hideNav: true } },
+  { path: '/dashboard', name: 'Dashboard', component: Dashboard },
   { path: '/login', name: 'Login', component: Login, meta: { hideNav: true } },
   { path: '/signup', name: 'SignUp', component: SignUp, meta: { hideNav: true } },
   { path: '/log/:id', name: 'LogDetails', component: LogDetails },

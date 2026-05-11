@@ -10,6 +10,8 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="8.0.*" />
+    <PackageReference Include="Microsoft.AspNetCore.Identity.EntityFrameworkCore" Version="8.0.*" />
     <PackageReference Include="Microsoft.AspNetCore.SpaProxy">
       <Version>8.*-*</Version>
     </PackageReference>
@@ -33,6 +35,10 @@
     <ProjectReference Include="..\btc_reconciliationautomation.client\btc_reconciliationautomation.client.esproj">
       <ReferenceOutputAssembly>false</ReferenceOutputAssembly>
     </ProjectReference>
+  </ItemGroup>
+
+  <ItemGroup>
+    <Folder Include="Migrations\Identity\" />
   </ItemGroup>
 
 </Project>

@@ -65,6 +65,18 @@ namespace BTC_ReconciliationAutomation.Server.Controllers
             return File(stream, contentType, System.IO.Path.GetFileName(path));
         }
 
+        // Get all file types (for filter dropdowns)
+        [HttpGet("types")]
+        public async Task<IActionResult> GetFileTypes()
+        {
+            var types = await _repo.GetAllFileTypesAsync();
+            return Ok(types.Select(t => new
+            {
+                id   = t.FILE_TYPE_ID,
+                name = t.FILE_TYPE_NAME
+            }));
+        }
+
         // Trigger email delivery (placeholder)
         [HttpPost("email/{id}")]
         public async Task<IActionResult> SendEmail([FromRoute] object id)

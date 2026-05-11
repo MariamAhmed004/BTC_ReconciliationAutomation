@@ -1,6 +1,11 @@
+using System;
+using System.Collections.Generic;
+using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
+using BTC_ReconciliationAutomation.Server.Models;
 using BTC_ReconciliationAutomation.Server.Repositories.Interfaces;
+using BTC_ReconciliationAutomation.Server.DTOs;
 
 namespace BTC_ReconciliationAutomation.Server.Controllers
 {
@@ -15,19 +20,12 @@ namespace BTC_ReconciliationAutomation.Server.Controllers
             _repo = repo;
         }
 
-        public class DeleteRangeRequest
-        {
-            public System.DateTime? From { get; set; }
-            public System.DateTime? To { get; set; }
-            public int? Days { get; set; }
-        }
-
         // Get system logs for a run
         [HttpGet("run/{runId}")]
         public async Task<IActionResult> GetForRun([FromRoute] object runId)
         {
             var all = await _repo.GetAllAsync();
-            var filtered = System.Linq.Enumerable.Where(all, l =>
+            var filtered = all.Where(l =>
             {
                 var prop = l.GetType().GetProperty("RUN_ID");
                 if (prop == null) return false;
@@ -42,7 +40,7 @@ namespace BTC_ReconciliationAutomation.Server.Controllers
         public async Task<IActionResult> GetLatest()
         {
             var all = await _repo.GetAllAsync();
-            var latest = System.Linq.Enumerable.Take(all, 50);
+            var latest = all.Take(50);
             return Ok(latest);
         }
 
@@ -52,19 +50,19 @@ namespace BTC_ReconciliationAutomation.Server.Controllers
         {
             var all = await _repo.GetAllAsync();
 
-            IEnumerable<BTC_ReconciliationAutomation.Server.Models.system_log> filtered;
+            IEnumerable<system_log> filtered;
 
             if (req?.Days != null && req.Days > 0)
             {
                 // Delete logs older than the specified number of days
-                var cutoff = System.DateTime.UtcNow.AddDays(-req.Days.Value);
-                filtered = System.Linq.Enumerable.Where(all, l => l.CREATED_AT < cutoff).ToList();
+                var cutoff = DateTime.UtcNow.AddDays(-req.Days.Value);
+                filtered = all.Where(l => l.CREATED_AT < cutoff).ToList();
             }
             else
             {
-                var to = req?.To ?? System.DateTime.UtcNow;
-                var from = req?.From ?? System.DateTime.MinValue;
-                filtered = System.Linq.Enumerable.Where(all, l => l.CREATED_AT >= from && l.CREATED_AT <= to).ToList();
+                var to = req?.To ?? DateTime.UtcNow;
+                var from = req?.From ?? DateTime.MinValue;
+                filtered = all.Where(l => l.CREATED_AT >= from && l.CREATED_AT <= to).ToList();
             }
             var count = 0;
             foreach (var f in filtered)
@@ -78,10 +76,10 @@ namespace BTC_ReconciliationAutomation.Server.Controllers
                 ? $"Deleted {count} log records older than {req.Days} days"
                 : $"Deleted {count} log records (range: {req?.From:u} - {req?.To:u})";
 
-            var audit = new BTC_ReconciliationAutomation.Server.Models.system_log
+            var audit = new system_log
             {
                 LOG_MESSAGE = message,
-                CREATED_AT = System.DateTime.UtcNow,
+                CREATED_AT = DateTime.UtcNow,
                 LOG_LEVEL_ID = 1
             };
             await _repo.AddAsync(audit);
@@ -94,7 +92,7 @@ namespace BTC_ReconciliationAutomation.Server.Controllers
         public async Task<IActionResult> DeleteAll()
         {
             var all = await _repo.GetAllAsync();
-            var list = System.Linq.Enumerable.ToList(all);
+            var list = all.ToList();
             var count = 0;
             foreach (var l in list)
             {
@@ -102,13 +100,13 @@ namespace BTC_ReconciliationAutomation.Server.Controllers
                 count++;
             }
 
-            var audit = new BTC_ReconciliationAutomation.Server.Models.system_log
+            var audit2 = new system_log
             {
                 LOG_MESSAGE = $"Deleted all log records ({count} entries)",
-                CREATED_AT = System.DateTime.UtcNow,
+                CREATED_AT = DateTime.UtcNow,
                 LOG_LEVEL_ID = 1
             };
-            await _repo.AddAsync(audit);
+            await _repo.AddAsync(audit2);
 
             return Ok(new { deleted = count });
         }
