@@ -2,6 +2,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
+using BTC_ReconciliationAutomation.Server.DTOs;
 using BTC_ReconciliationAutomation.Server.Repositories.Interfaces;
 using Microsoft.AspNetCore.StaticFiles;
 
@@ -18,13 +19,6 @@ namespace BTC_ReconciliationAutomation.Server.Controllers
         {
             _repo = repo;
             _logRepo = logRepo;
-        }
-
-        public class DeleteRangeRequest
-        {
-            public System.DateTime? From { get; set; }
-            public System.DateTime? To { get; set; }
-            public int? Days { get; set; }
         }
 
         // Get latest files with related data
