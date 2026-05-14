@@ -1,18 +1,22 @@
 ﻿using System;
 using System.Collections.Generic;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Configuration;
 
 namespace BTC_ReconciliationAutomation.Server.Models;
 
 public partial class OracleDbContext : DbContext
 {
+    private readonly IConfiguration? _configuration;
+
     public OracleDbContext()
     {
     }
 
-    public OracleDbContext(DbContextOptions<OracleDbContext> options)
+    public OracleDbContext(DbContextOptions<OracleDbContext> options, IConfiguration configuration)
         : base(options)
     {
+        _configuration = configuration;
     }
 
     public virtual DbSet<ROWB_TABLE> ROWB_TABLEs { get; set; }
@@ -40,13 +44,18 @@ public partial class OracleDbContext : DbContext
     public virtual DbSet<system_log> system_logs { get; set; }
 
     protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
-#warning To protect potentially sensitive information in your connection string, you should move it out of source code. You can avoid scaffolding the connection string by using the Name= syntax to read it from configuration - see https://go.microsoft.com/fwlink/?linkid=2131148. For more guidance on storing connection strings, see https://go.microsoft.com/fwlink/?LinkId=723263.
-        => optionsBuilder.UseOracle("User Id=billing_mock;Password=billing123;Data Source=localhost:1521/XEPDB1;");
+    {
+        if (!optionsBuilder.IsConfigured)
+            optionsBuilder.UseOracle(_configuration?.GetConnectionString("OracleDb")
+                ?? "User Id=billing_mock;Password=billing123;Data Source=localhost:1521/XEPDB1;");
+    }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
+        var schema = _configuration?["Oracle:Schema"] ?? "BILLING_MOCK";
+
         modelBuilder
-            .HasDefaultSchema("BILLING_MOCK")
+            .HasDefaultSchema(schema)
             .UseCollation("USING_NLS_COMP");
 
         modelBuilder.Entity<ROWB_TABLE>(entity =>
