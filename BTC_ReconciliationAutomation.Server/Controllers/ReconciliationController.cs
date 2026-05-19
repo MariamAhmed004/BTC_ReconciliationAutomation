@@ -3,6 +3,7 @@ using System.IO.Compression;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using BTC_ReconciliationAutomation.Server.Repositories.Interfaces;
 using BTC_ReconciliationAutomation.Server.Models;
@@ -10,6 +11,7 @@ using BTC_ReconciliationAutomation.Server.DTOs;
 
 namespace BTC_ReconciliationAutomation.Server.Controllers
 {
+    [Authorize]
     [ApiController]
     [Route("api/[controller]")]
     public class ReconciliationController : ControllerBase

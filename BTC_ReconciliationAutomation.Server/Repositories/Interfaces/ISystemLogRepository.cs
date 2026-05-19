@@ -11,5 +11,6 @@ namespace BTC_ReconciliationAutomation.Server.Repositories.Interfaces
         Task AddAsync(system_log entity);
         Task UpdateAsync(system_log entity);
         Task DeleteAsync(object id);
+        Task<IEnumerable<log_level>> GetAllLevelsAsync();
     }
 }

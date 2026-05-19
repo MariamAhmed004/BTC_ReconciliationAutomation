@@ -22,6 +22,8 @@ const deleteFrom = ref('')
 const deleteTo = ref('')
 const deleteDays = ref(30)
 
+const levelOptions = ref([{ value: '', label: 'Any' }])
+
 // Confirmation modal
 const showConfirmModal = ref(false)
 const confirmModalMessage = ref('')
@@ -55,6 +57,20 @@ function showFeedback(title, message, variant = 'success') {
 function formatDate(d) {
   if (!d) return ''
   try { return new Date(d).toLocaleString() } catch { return String(d) }
+}
+
+async function loadLevels() {
+  try {
+    const res = await fetch('/api/Log/levels')
+    if (!res.ok) return
+    const data = await res.json()
+    levelOptions.value = [
+      { value: '', label: 'Any' },
+      ...data.map(l => ({ value: l.loG_LEVEL1 ?? l.LOG_LEVEL1, label: l.loG_LEVEL1 ?? l.LOG_LEVEL1 }))
+    ]
+  } catch (err) {
+    console.error('Error loading log levels', err)
+  }
 }
 
 async function loadLogs() {
@@ -94,20 +110,15 @@ async function loadLogs() {
   }
 }
 
-onMounted(() => { loadLogs() })
+onMounted(() => { loadLevels(); loadLogs() })
 
 const router = useRouter()
 
-const filters = [
-  { key: 'level', label: 'Level', type: 'select', options: [
-    { value: '', label: 'Any' },
-    { value: 'INFO', label: 'Info' },
-    { value: 'WARNING', label: 'Warning' },
-    { value: 'ERROR', label: 'Error' }
-  ], default: '' },
+const filters = computed(() => [
+  { key: 'level', label: 'Level', type: 'select', options: levelOptions.value, default: '' },
   { key: 'runTriggeredBy', label: 'Run', type: 'text', placeholder: 'Triggered by' },
   { key: 'createdAt', label: 'Date', type: 'date' }
-]
+])
 
 function onRowClick(item) {
   // replace with navigation or details panel as needed

@@ -14,22 +14,35 @@ const ConfigurationDetails = () => import('@/pages/ConfigurationDetails.vue')
 
 const routes = [
   { path: '/', name: 'Welcome', component: Welcome, meta: { hideNav: true } },
-  { path: '/dashboard', name: 'Dashboard', component: Dashboard },
+  { path: '/dashboard', name: 'Dashboard', component: Dashboard, meta: { requiresAuth: true } },
   { path: '/login', name: 'Login', component: Login, meta: { hideNav: true } },
   { path: '/signup', name: 'SignUp', component: SignUp, meta: { hideNav: true } },
-  { path: '/log/:id', name: 'LogDetails', component: LogDetails },
-  { path: '/configuration/:id', name: 'ConfigurationDetails', component: ConfigurationDetails },
-  { path: '/reconciliation', name: 'Reconciliation', component: Reconciliation },
-  { path: '/management', name: 'Management', component: Management },
-  { path: '/reconfigure', name: 'Reconfigure', component: Reconfigure },
-  { path: '/files', name: 'FilesRepository', component: FilesRepository },
-  { path: '/logs', name: 'Logs', component: Logs }
+  { path: '/log/:id', name: 'LogDetails', component: LogDetails, meta: { requiresAuth: true } },
+  { path: '/configuration/:id', name: 'ConfigurationDetails', component: ConfigurationDetails, meta: { requiresAuth: true } },
+  { path: '/reconciliation', name: 'Reconciliation', component: Reconciliation, meta: { requiresAuth: true } },
+  { path: '/management', name: 'Management', component: Management, meta: { requiresAuth: true } },
+  { path: '/reconfigure', name: 'Reconfigure', component: Reconfigure, meta: { requiresAuth: true } },
+  { path: '/files', name: 'FilesRepository', component: FilesRepository, meta: { requiresAuth: true } },
+  { path: '/logs', name: 'Logs', component: Logs, meta: { requiresAuth: true } }
 ]
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
   routes,
   linkActiveClass: 'active'
+})
+
+router.beforeEach(async (to) => {
+  if (!to.meta.requiresAuth) return true
+
+  try {
+    const res = await fetch('/api/auth/me', { credentials: 'include' })
+    if (res.ok) return true
+  } catch {
+    // network error - redirect to login
+  }
+
+  return { name: 'Login' }
 })
 
 export default router

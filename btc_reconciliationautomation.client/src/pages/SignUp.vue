@@ -60,7 +60,13 @@ async function signUp() {
           <div class="col-md-6 col-lg-5">
             <div class="auth-card p-4">
               <h2 class="fw-bold text-center">Sign Up</h2>
-              <p class="text-muted text-center mb-4">Create an account to access the reconciliation dashboard</p>
+              <p class="text-muted text-center mb-1">Create an account to access the reconciliation dashboard</p>
+              <p class="text-center mb-4">
+                <small class="text-warning">
+                  <i class="bi bi-exclamation-triangle-fill me-1"></i>
+                  <strong>Note:</strong> This page is a placeholder for demonstration purposes only. In production, accounts are provisioned by an administrator using company credentials.
+                </small>
+              </p>
 
               <div v-if="error" class="alert alert-danger py-2">{{ error }}</div>
 

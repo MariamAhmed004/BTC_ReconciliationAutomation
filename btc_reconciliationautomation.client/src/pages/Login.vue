@@ -46,7 +46,7 @@ async function login() {
           <div class="col-md-6 col-lg-5">
             <div class="auth-card p-4">
               <h2 class="fw-bold">Welcome Back</h2>
-              <p class="text-muted mb-4">Access the reconciliation dashboard</p>
+              <p class="text-muted mb-4">Access the reconciliation dashboard using your company credentials</p>
 
               <div v-if="error" class="alert alert-danger py-2">{{ error }}</div>
 
@@ -77,7 +77,7 @@ async function login() {
               </form>
 
               <div class="text-center mt-4">
-                <small class="text-muted">Don't have an account? <router-link to="/signup">Sign up</router-link></small>
+                <small class="text-muted">Need a demonstration user? <router-link to="/signup">Create one here</router-link></small>
               </div>
             </div>
           </div>

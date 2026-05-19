@@ -42,5 +42,10 @@ namespace BTC_ReconciliationAutomation.Server.Repositories.Implementation
             var e = await _db.system_logs.FindAsync(id);
             if (e != null) { _db.system_logs.Remove(e); await _db.SaveChangesAsync(); }
         }
+
+        public async Task<IEnumerable<log_level>> GetAllLevelsAsync()
+        {
+            return await _db.log_levels.AsNoTracking().ToListAsync();
+        }
     }
 }

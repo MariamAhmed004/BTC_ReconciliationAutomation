@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using BTC_ReconciliationAutomation.Server.Models;
 using BTC_ReconciliationAutomation.Server.Repositories.Interfaces;
@@ -9,6 +10,7 @@ using BTC_ReconciliationAutomation.Server.DTOs;
 
 namespace BTC_ReconciliationAutomation.Server.Controllers
 {
+    [Authorize]
     [ApiController]
     [Route("api/[controller]")]
     public class LogController : ControllerBase
@@ -42,6 +44,14 @@ namespace BTC_ReconciliationAutomation.Server.Controllers
             var all = await _repo.GetAllAsync();
             var latest = all.Take(50);
             return Ok(latest);
+        }
+
+        // Get all available log levels (for filter dropdowns)
+        [HttpGet("levels")]
+        public async Task<IActionResult> GetLevels()
+        {
+            var levels = await _repo.GetAllLevelsAsync();
+            return Ok(levels);
         }
 
         // Delete logs by date range or number of days
