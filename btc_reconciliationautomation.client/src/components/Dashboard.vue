@@ -111,7 +111,6 @@ const computeNextRun = (info) => {
   const [hours, minutes] = (info.runTime ?? '00:00').split(':').map(Number)
 
   const now = new Date()
-
   let next = null
 
   if (freq === 'DAILY') {
@@ -120,16 +119,55 @@ const computeNextRun = (info) => {
   }
 
   if (freq === 'MONTHLY') {
-    const day = Number(info.dayOfMonth) || 1
-    next = new Date(now.getFullYear(), now.getMonth(), day, hours, minutes, 0)
-    if (next <= now) next = new Date(now.getFullYear(), now.getMonth() + 1, day, hours, minutes, 0)
+    // Parse comma-separated day numbers e.g. "15,17,20"
+    const days = (info.dayOfMonth ?? '')
+      .split(',')
+      .map(d => parseInt(d.trim(), 10))
+      .filter(d => !isNaN(d) && d >= 1 && d <= 31)
+      .sort((a, b) => a - b)
+
+    if (days.length === 0) return null
+
+    // Find the nearest upcoming day in the current or next month
+    let found = null
+    for (const day of days) {
+      const candidate = new Date(now.getFullYear(), now.getMonth(), day, hours, minutes, 0)
+      if (candidate > now) {
+        found = candidate
+        break
+      }
+    }
+    // If none found this month, take the first day of next month
+    if (!found) {
+      found = new Date(now.getFullYear(), now.getMonth() + 1, days[0], hours, minutes, 0)
+    }
+    next = found
   }
 
   if (freq === 'WEEKLY') {
-    next = new Date(now.getFullYear(), now.getMonth(), now.getDate(), hours, minutes, 0)
-    if (next <= now) next.setDate(next.getDate() + 1)
-    // advance to same weekday next week from now (7 days rolling)
-    next = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 7, hours, minutes, 0)
+    // Parse comma-separated day names e.g. "Monday,Wednesday"
+    const dayNameMap = {
+      sunday: 0, monday: 1, tuesday: 2, wednesday: 3,
+      thursday: 4, friday: 5, saturday: 6
+    }
+    const targetDays = (info.dayOfMonth ?? '')
+      .split(',')
+      .map(d => dayNameMap[d.trim().toLowerCase()])
+      .filter(d => d !== undefined)
+      .sort((a, b) => a - b)
+
+    if (targetDays.length === 0) return null
+
+    const todayDow = now.getDay()
+    let minDaysAhead = null
+    for (const dow of targetDays) {
+      let diff = dow - todayDow
+      if (diff < 0 || (diff === 0 && new Date(now.getFullYear(), now.getMonth(), now.getDate(), hours, minutes, 0) <= now)) {
+        diff += 7
+      }
+      if (minDaysAhead === null || diff < minDaysAhead) minDaysAhead = diff
+    }
+    next = new Date(now.getFullYear(), now.getMonth(), now.getDate() + minDaysAhead, hours, minutes, 0)
   }
 
   if (!next) return null

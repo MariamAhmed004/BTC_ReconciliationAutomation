@@ -134,7 +134,7 @@ onMounted(() => { loadConfig() })
           <div class="col-md-4">
             <div class="detail-card">
               <div class="detail-card-label">Frequency</div>
-              <div class="detail-card-value">{{ config.frequencY || 'N/A' }}</div>
+              <div class="detail-card-value">{{ config.frequency || 'N/A' }}</div>
             </div>
           </div>
           <div class="col-md-4">

@@ -21,6 +21,7 @@ namespace BTC_ReconciliationAutomation.Server.Repositories.Implementation
                 .Include(r => r.DELIVERY_METHOD)
                 .Include(r => r.EMAIL_STATUS)
                 .Include(r => r.CONFIG)
+                .OrderByDescending(r => r.RUN_DATE)
                 .AsNoTracking()
                 .ToListAsync();
         }

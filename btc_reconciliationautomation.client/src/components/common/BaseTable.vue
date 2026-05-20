@@ -9,7 +9,7 @@ const props = defineProps({
   showSearch: { type: Boolean, default: false },
   showPagination: { type: Boolean, default: false },
   filters: { type: Array, default: () => [] },
-  pageSizeOptions: { type: Array, default: () => [10, 25, 50] },
+  pageSizeOptions: { type: Array, default: () => [10, 25, 50, 100] },
   rowClickable: { type: Boolean, default: false }
 })
 
@@ -148,6 +148,25 @@ function lastPage() { goToPage(totalPages.value) }
 // reset page when pageSize changes
 watch(pageSize, () => { currentPage.value = 1 })
 
+// Windowed page list: always show first, last, current ±1, with '...' gaps
+const visiblePages = computed(() => {
+  const total = totalPages.value
+  const cur = currentPage.value
+  if (total <= 7) return Array.from({ length: total }, (_, i) => i + 1)
+
+  const pages = new Set([1, total, cur])
+  if (cur - 1 > 1) pages.add(cur - 1)
+  if (cur + 1 < total) pages.add(cur + 1)
+
+  const sorted = [...pages].sort((a, b) => a - b)
+  const result = []
+  for (let i = 0; i < sorted.length; i++) {
+    if (i > 0 && sorted[i] - sorted[i - 1] > 1) result.push('...')
+    result.push(sorted[i])
+  }
+  return result
+})
+
 function handleApplyFilters(payload) {
   const p = { ...payload }
   if (p.sort) {
@@ -253,8 +272,9 @@ function handleCloseFilter() {
           <li class="page-item" :class="{ disabled: currentPage===1 }"><button class="page-link" @click="firstPage">««</button></li>
           <li class="page-item" :class="{ disabled: currentPage===1 }"><button class="page-link" @click="prevPage">«</button></li>
 
-          <li v-for="p in Array.from({ length: totalPages }, (_, i) => i + 1)" :key="p" class="page-item" :class="{ active: p===currentPage }">
-            <button class="page-link" @click="goToPage(p)">{{ p }}</button>
+          <li v-for="(p, i) in visiblePages" :key="i"
+            :class="['page-item', { active: p === currentPage, disabled: p === '...' }]">
+            <button class="page-link" @click="p !== '...' && goToPage(p)">{{ p }}</button>
           </li>
 
           <li class="page-item" :class="{ disabled: currentPage===totalPages }"><button class="page-link" @click="nextPage">»</button></li>

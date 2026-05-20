@@ -37,7 +37,7 @@ import logo from '@/assets/logo.png'
       <div class="footer-bottom">
         <div class="container">
           <div class="text-center footer-copy">
-            © 2026 Reconciliation System | Internal Use Only | All Rights Reserved
+            © 2026 Reconciliation System | Developed by Maryam Ahmed | Internal Use Only | All Rights Reserved
           </div>
         </div>
       </div>

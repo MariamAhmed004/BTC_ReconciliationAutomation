@@ -42,8 +42,7 @@ namespace BTC_ReconciliationAutomation.Server.Controllers
         public async Task<IActionResult> GetLatest()
         {
             var all = await _repo.GetAllAsync();
-            var latest = all.Take(50);
-            return Ok(latest);
+            return Ok(all);
         }
 
         // Get all available log levels (for filter dropdowns)

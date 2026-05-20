@@ -26,7 +26,7 @@ namespace BTC_ReconciliationAutomation.Server.Repositories.Implementation
                 .ToListAsync();
         }
 
-        public async Task<IEnumerable<generated_file>> GetLatestFilesAsync(int count = 50)
+        public async Task<IEnumerable<generated_file>> GetLatestFilesAsync()
         {
             return await _db.generated_files
                 .Include(f => f.FILE_TYPE)
@@ -37,7 +37,6 @@ namespace BTC_ReconciliationAutomation.Server.Repositories.Implementation
                 .Include(f => f.RUN)
                     .ThenInclude(r => r.RUN_STATUS)
                 .OrderByDescending(f => f.CREATED_AT)
-                .Take(count)
                 .AsNoTracking()
                 .ToListAsync();
         }

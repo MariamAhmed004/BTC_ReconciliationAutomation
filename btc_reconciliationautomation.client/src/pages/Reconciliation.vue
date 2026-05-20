@@ -129,7 +129,7 @@ onMounted(() => { loadRuns() })
         :items="items"
         :showSearch="true"
         :showPagination="true"
-        :pageSizeOptions="[10,25,50]"
+        :pageSizeOptions="[10,25,50,100]"
         :filters="filters"
         :rowClickable="true"
         @row-click="(item) => $router.push({ name: 'LogDetails', params: { id: item.id } })"

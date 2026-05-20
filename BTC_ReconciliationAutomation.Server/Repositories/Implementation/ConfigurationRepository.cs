@@ -15,7 +15,11 @@ namespace BTC_ReconciliationAutomation.Server.Repositories.Implementation
 
         public async Task<IEnumerable<system_configuration>> GetAllAsync()
         {
-            return await _db.system_configurations.AsNoTracking().ToListAsync();
+            return await _db.system_configurations
+                .OrderByDescending(c => c.IS_ACTIVE == "Y" ? 1 : 0)
+                .ThenByDescending(c => c.EFFECTIVE_FROM)
+                .AsNoTracking()
+                .ToListAsync();
         }
 
         public async Task<system_configuration?> GetByIdAsync(object id)

@@ -90,7 +90,7 @@ async function fetchConfigurations() {
         created_at: config.createD_AT ? new Date(config.createD_AT).toLocaleString() : 'N/A',
         // Additional fields for the card display
         email_recipients: config.emaiL_RECIPIENTS || 'N/A',
-        frequency: config.frequencY || 'N/A',
+        frequency: config.frequency || 'N/A',
         run_time: config.ruN_TIME || 'N/A',
         day_of_month: config.daY_OF_MONTH || 'N/A',
         default_file_path: config.defaulT_FILE_PATH || 'N/A',
@@ -110,8 +110,18 @@ async function fetchConfigurations() {
 async function runReconciliation() {
   isRunning.value = true
   try {
-    // TODO: replace 'MA' with the actual logged-in username when auth is implemented
-    const triggeredBy = 'MA'
+    // Fetch the logged-in user's info from the me endpoint
+    let triggeredBy = 'Manual'
+    try {
+      const meRes = await fetch('/api/auth/me', { credentials: 'include' })
+      if (meRes.ok) {
+        const me = await meRes.json()
+        const fullName = [me.firstName, me.lastName].filter(Boolean).join(' ')
+        triggeredBy = fullName || me.email || me.userName || 'Manual'
+      }
+    } catch {
+      // fallback to 'Manual' if me endpoint fails
+    }
 
     const response = await fetch('api/reconciliation/run', {
       method: 'POST',

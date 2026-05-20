@@ -23,11 +23,11 @@ namespace BTC_ReconciliationAutomation.Server.Controllers
             _logRepo = logRepo;
         }
 
-        // Get latest files with related data
+        // Get all files ordered by newest first
         [HttpGet("latest")]
-        public async Task<IActionResult> GetLatest([FromQuery] int count = 50)
+        public async Task<IActionResult> GetLatest()
         {
-            var files = await _repo.GetLatestFilesAsync(count);
+            var files = await _repo.GetLatestFilesAsync();
             return Ok(files);
         }
 

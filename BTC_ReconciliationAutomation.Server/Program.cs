@@ -58,6 +58,30 @@ builder.Services.AddSwaggerGen();
 
 var app = builder.Build();
 
+app.Use(async (context, next) =>
+{
+    try
+    {
+        await next(context);
+    }
+    catch (Exception ex)
+    {
+        var logRepo = context.RequestServices.GetRequiredService<BTC_ReconciliationAutomation.Server.Repositories.Interfaces.ISystemLogRepository>();
+        var root = ex.GetBaseException();
+        var message = $"[UNHANDLED] {context.Request.Method} {context.Request.Path} — {root.GetType().Name}: {root.Message}";
+        await logRepo.AddAsync(new BTC_ReconciliationAutomation.Server.Models.system_log
+        {
+            LOG_MESSAGE = message.Length > 500 ? message[..500] : message,
+            CREATED_AT = DateTime.UtcNow,
+            LOG_LEVEL_ID = 3
+        });
+
+        context.Response.StatusCode = 500;
+        context.Response.ContentType = "application/json";
+        await context.Response.WriteAsync("{\"message\":\"An unexpected error occurred.\"}");
+    }
+});
+
 app.UseDefaultFiles();
 app.UseStaticFiles();
 
