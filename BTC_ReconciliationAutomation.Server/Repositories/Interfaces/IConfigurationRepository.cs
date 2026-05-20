@@ -18,5 +18,11 @@ namespace BTC_ReconciliationAutomation.Server.Repositories.Interfaces
         /// Both operations run inside a single transaction.
         /// </summary>
         Task<system_configuration> CreateNewActiveAsync(system_configuration newConfig);
+
+        /// <summary>
+        /// Queries USER_SCHEDULER_JOBS to check whether PURGE_LOGS_JOB is currently enabled.
+        /// Returns true if ENABLED = 'TRUE', false otherwise or if the job does not exist.
+        /// </summary>
+        Task<bool> IsPurgeJobEnabledAsync();
     }
 }

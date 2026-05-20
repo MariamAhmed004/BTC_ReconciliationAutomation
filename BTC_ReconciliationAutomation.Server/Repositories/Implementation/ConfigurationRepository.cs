@@ -27,6 +27,19 @@ namespace BTC_ReconciliationAutomation.Server.Repositories.Implementation
             return await _db.system_configurations.FindAsync(id);
         }
 
+        public async Task<bool> IsPurgeJobEnabledAsync()
+        {
+            var conn = _db.Database.GetDbConnection();
+            if (conn.State != System.Data.ConnectionState.Open)
+                await conn.OpenAsync();
+
+            using var cmd = conn.CreateCommand();
+            cmd.CommandText = "SELECT ENABLED FROM USER_SCHEDULER_JOBS WHERE JOB_NAME = 'PURGE_LOGS_JOB'";
+
+            var result = await cmd.ExecuteScalarAsync();
+            return result?.ToString()?.Equals("TRUE", StringComparison.OrdinalIgnoreCase) ?? false;
+        }
+
         public async Task AddAsync(system_configuration entity)
         {
             _db.system_configurations.Add(entity);
@@ -71,6 +84,14 @@ namespace BTC_ReconciliationAutomation.Server.Repositories.Implementation
                 _db.system_configurations.Add(newConfig);
                 await _db.SaveChangesAsync();
                 await transaction.CommitAsync();
+
+                // Enable or disable the Oracle purge scheduler job
+                // based on whether log retention is configured in the new config 
+                var toggleFlag = newConfig.DAYS_TO_DELETE_AUDITLOGS.HasValue ? "Y" : "N";
+                await _db.Database.ExecuteSqlRawAsync(
+                    "BEGIN TOGGLE_PURGE_JOB(:p_enable); END;",
+                    new Oracle.ManagedDataAccess.Client.OracleParameter("p_enable", toggleFlag)
+                );
 
                 return newConfig;
             }

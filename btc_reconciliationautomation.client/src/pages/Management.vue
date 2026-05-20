@@ -15,6 +15,7 @@ const configurations = ref([])
 const loading = ref(false)
 const error = ref(null)
 const latestActiveConfig = ref(null)
+const purgeJobEnabled = ref(null)  // null = unknown, true = enabled, false = disabled
 
 const showModal = ref(false)
 const modalTitle = ref('')
@@ -74,11 +75,28 @@ function formatSchedule(config) {
   return schedule
 }
 
+async function fetchPurgeJobStatus() {
+  try {
+    const res = await fetch('/api/configuration/purge-job-status')
+    if (res.ok) {
+      const data = await res.json()
+      purgeJobEnabled.value = data.enabled
+    } else {
+      purgeJobEnabled.value = null
+    }
+  } catch {
+    purgeJobEnabled.value = null
+  }
+}
+
 async function fetchConfigurations() {
   loading.value = true
   error.value = null
   try {
-    const response = await fetch('api/configuration')
+    const [response] = await Promise.all([
+      fetch('api/configuration'),
+      fetchPurgeJobStatus()
+    ])
     if (response.ok) {
       const data = await response.json()
       configurations.value = data.map(config => ({
@@ -229,8 +247,22 @@ onMounted(() => {
             <!-- Log Retention -->
             <div class="config-item">
               <span class="config-label">Log Retention:</span>
-              <span class="config-value">
-                Audit logs are deleted after {{ activeConfiguration.days_to_delete_auditlogs }} days of creation
+              <span class="config-value d-flex align-items-center gap-2 flex-wrap">
+                <template v-if="activeConfiguration.days_to_delete_auditlogs !== 'N/A' && activeConfiguration.days_to_delete_auditlogs !== null">
+                  Audit logs are deleted after {{ activeConfiguration.days_to_delete_auditlogs }} days of creation
+                  <span
+                    v-if="purgeJobEnabled !== null"
+                    :title="purgeJobEnabled ? 'Purge scheduler job is active' : 'Purge scheduler job is disabled'"
+                    class="purge-indicator"
+                    :class="purgeJobEnabled ? 'purge-on' : 'purge-off'"
+                  >
+                    <i :class="purgeJobEnabled ? 'bi bi-circle-fill text-success' : 'bi bi-circle-fill text-danger'"></i>
+                    {{ purgeJobEnabled ? 'Scheduler ON' : 'Scheduler OFF' }}
+                  </span>
+                </template>
+                <template v-else>
+                  Log retention not activated
+                </template>
               </span>
             </div>
 
@@ -357,4 +389,18 @@ onMounted(() => {
   align-items: center;
   justify-content: center;
 }
+
+.purge-indicator {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  padding: 0.15rem 0.5rem;
+  border-radius: 20px;
+  white-space: nowrap;
+}
+
+.purge-on  { background: #d1f5e0; color: #146c43; }
+.purge-off { background: #fde8e8; color: #842029; }
 </style>

@@ -67,5 +67,13 @@ namespace BTC_ReconciliationAutomation.Server.Controllers
             await _repo.UpdateAsync(config);
             return NoContent();
         }
+
+        // Check whether the Oracle PURGE_LOGS_JOB scheduler job is currently enabled
+        [HttpGet("purge-job-status")]
+        public async Task<IActionResult> GetPurgeJobStatus()
+        {
+            var enabled = await _repo.IsPurgeJobEnabledAsync();
+            return Ok(new { jobName = "PURGE_LOGS_JOB", enabled });
+        }
     }
 }

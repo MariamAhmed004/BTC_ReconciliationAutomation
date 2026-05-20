@@ -371,7 +371,7 @@ function cancel() {
                   class="form-control"
                   rows="3"
                   style="resize: vertical; min-height: 80px;"
-                  placeholder="e.g. 000, Skip, eFax"
+                  placeholder="e.g. 000%, Skip%, eFax%  — applied to BNET_REF"
                 ></textarea>
               </div>
               <div class="field-info">
@@ -530,23 +530,46 @@ function cancel() {
     >
       <div class="modal-info-body">
         <p class="mb-3">
-          This field lets you define <strong>reference prefixes to exclude from reconciliation comparisons</strong>. Records matching these prefixes will be skipped during the run and will not appear as discrepancies.
+          This field lets you define <strong>Oracle <code>LIKE</code> patterns to exclude from reconciliation comparisons</strong>.
+          During each run, every record's <strong><code>BNET_REF</code></strong> column value is checked against these patterns —
+          any record whose <code>BNET_REF</code> matches will be skipped and will not appear as a discrepancy.
         </p>
-        <p class="mb-2 small"><strong>Format:</strong> Enter values separated by commas.</p>
+
+        <div class="info-warn mb-3">
+          <i class="bi bi-exclamation-triangle-fill me-2"></i>
+          <strong>Oracle <code>LIKE</code> syntax is required.</strong> Each entry must include the <code>%</code> wildcard where needed.
+          A value without <code>%</code> will only match an <em>exact</em> string — it will not match prefixes or partial values.
+        </div>
+
+        <p class="mb-2 small"><strong>Format:</strong> Enter one or more <code>LIKE</code> patterns separated by commas. Each pattern is matched against the <code>BNET_REF</code> column.</p>
         <div class="example-box mb-3">
           <span class="example-label">Example</span>
-          <code>000, Skip, eFax</code>
-          <p class="mb-0 mt-1 small text-muted">Any transaction whose ROWB reference starts with <em>000</em>, <em>Skip</em>, or <em>eFax</em> will be ignored.</p>
+          <code>000%, Skip%, eFax%</code>
+          <p class="mb-0 mt-1 small text-muted">Any record whose <code>BNET_REF</code> starts with <em>000</em>, <em>Skip</em>, or <em>eFax</em> will be excluded from the comparison.</p>
         </div>
+
+        <table class="table table-sm table-bordered mb-3">
+          <thead class="table-light">
+            <tr><th>Pattern</th><th>What it matches on <code>BNET_REF</code></th></tr>
+          </thead>
+          <tbody>
+            <tr><td><code>000%</code></td><td>Any reference <strong>starting with</strong> 000</td></tr>
+            <tr><td><code>%TEST%</code></td><td>Any reference <strong>containing</strong> TEST anywhere</td></tr>
+            <tr><td><code>eFax%</code></td><td>Any reference <strong>starting with</strong> eFax</td></tr>
+            <tr><td><code>SKIP</code></td><td>Only the <strong>exact</strong> string SKIP — use with caution</td></tr>
+          </tbody>
+        </table>
+
         <p class="mb-2 small">Typical use cases include:</p>
         <ul class="small mb-3">
-          <li>Internal transfers or system-generated entries not expected to match.</li>
-          <li>Legacy placeholder records with known dummy references.</li>
+          <li>Internal transfers or system-generated entries not expected to reconcile.</li>
+          <li>Legacy placeholder records with known dummy reference prefixes.</li>
           <li>Test transactions that should not be flagged as discrepancies.</li>
         </ul>
         <div class="info-warn">
           <i class="bi bi-exclamation-triangle-fill me-2"></i>
-          <strong>Caution:</strong> Incorrect or overly broad ignore conditions can silently exclude legitimate discrepancies from being reported. Review these values carefully with the reconciliation team before saving.
+          <strong>Caution:</strong> Overly broad patterns (e.g. <code>%</code> alone) will exclude every record.
+          Review these values carefully with the team before saving.
         </div>
       </div>
     </BaseModal>
