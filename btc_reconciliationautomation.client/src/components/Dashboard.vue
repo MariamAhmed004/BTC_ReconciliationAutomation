@@ -36,6 +36,13 @@ const liveStats = ref({
   timestamp: null
 })
 
+// Total across all three live discrepancy categories
+const liveTotal = computed(() =>
+  (liveStats.value.missingInRowb ?? 0) +
+  (liveStats.value.notActiveInSiebel ?? 0) +
+  (liveStats.value.mismatchedPackages ?? 0)
+)
+
 // Chart data
 const chartData = ref({
   pieChart: {
@@ -73,11 +80,6 @@ const fetchAlerts = async () => {
     if (data.lastRunFailed) {
       alertFailed.value = true
       showFailedAlert.value = true
-    }
-
-    if (data.highDiscrepancies) {
-      alertHighDisc.value = { show: true, count: data.totalDiscrepancies }
-      showHighDiscAlert.value = true
     }
   } catch (err) {
     console.error('Error fetching dashboard alerts:', err)
@@ -300,6 +302,16 @@ const fetchLiveStats = async () => {
     const data = await response.json()
     console.log('Live stats received:', data)
     liveStats.value = data
+
+    // Drive the high-discrepancy alert from the live totals
+    const total = (data.missingInRowb ?? 0) + (data.notActiveInSiebel ?? 0) + (data.mismatchedPackages ?? 0)
+    if (total > 0) {
+      alertHighDisc.value = { show: true, count: total }
+      showHighDiscAlert.value = true
+    } else {
+      alertHighDisc.value = { show: false, count: 0 }
+      showHighDiscAlert.value = false
+    }
   } catch (err) {
     console.error('Error fetching live stats:', err)
   }
@@ -507,7 +519,7 @@ onMounted(() => {
             <i class="bi bi-exclamation-triangle-fill flex-shrink-0 mt-1"></i>
             <div>
               <strong>High Discrepancy Count Detected</strong><br>
-              The last reconciliation detected <strong>{{ alertHighDisc.count }}</strong> discrepancies. A reconciliation action should be considered.
+              The current live data shows <strong>{{ alertHighDisc.count }}</strong> total discrepancies across all three categories (Missing in ROWB, Not Active in Siebel, Mismatched Packages). A reconciliation action should be considered.
             </div>
             <button type="button" class="btn-close ms-auto" aria-label="Close" @click="showHighDiscAlert = false"></button>
           </div>
